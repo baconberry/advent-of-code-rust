@@ -30,7 +30,8 @@ fn parse_line(line: String) -> usize {
     for num in num_re.find_iter(&own_text) {
         own.insert(num.as_str().parse::<usize>().unwrap());
     }
-    let win_count = own.intersection(&win).count();
+    let intersection = own.intersection(&win);
+    let win_count = intersection.count();
     if win_count == 0 {
         return 0;
     }
