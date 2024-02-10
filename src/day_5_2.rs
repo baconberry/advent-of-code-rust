@@ -1,5 +1,7 @@
 use crate::re_utils;
 use crate::utils;
+use rayon;
+use rayon::prelude::*;
 
 struct Mapping {
     source: usize,
@@ -42,16 +44,25 @@ pub fn process_lines(lines: Vec<String>) -> usize {
         }
     }
     let mut result = usize::MAX;
-    for seed in initial_seeds {
-        let soil = find(&seed_to_soil_map, seed);
-        let fertilizer = find(&soil_to_fertilizer, soil);
-        let water = find(&fertilizer_to_water, fertilizer);
-        let light = find(&water_to_light, water);
-        let temperature = find(&light_to_temperature, light);
-        let humidity = find(&temperature_to_humidity, temperature);
-        let location = find(&humidity_to_location, humidity);
-        if location < result {
-            result = location;
+    for i in (0..initial_seeds.len()).step_by(2) {
+        let (start, len) = (initial_seeds[i], initial_seeds[i + 1]);
+        let loc = (start..start + len)
+            .into_par_iter()
+            .map(|seed| {
+                let soil = find(&seed_to_soil_map, seed);
+                let fertilizer = find(&soil_to_fertilizer, soil);
+                let water = find(&fertilizer_to_water, fertilizer);
+                let light = find(&water_to_light, water);
+                let temperature = find(&light_to_temperature, light);
+                let humidity = find(&temperature_to_humidity, temperature);
+                let location = find(&humidity_to_location, humidity);
+                location
+            })
+            .min();
+        if let Some(location) = loc {
+            if location < result {
+                result = location;
+            }
         }
     }
 
@@ -127,5 +138,5 @@ humidity-to-location map:
 ";
     let lines = utils::string_to_lines(input.to_string());
     let result = process_lines(lines);
-    assert_eq!(35, result);
+    assert_eq!(46, result);
 }
