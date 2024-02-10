@@ -8,3 +8,11 @@ pub fn read_lines(file_name: String) -> Vec<String> {
     }
     result
 }
+
+pub fn string_to_lines(input: String) -> Vec<String> {
+    let mut result: Vec<String> = vec![];
+    for line in input.lines() {
+        result.push(line.to_string());
+    }
+    result
+}
