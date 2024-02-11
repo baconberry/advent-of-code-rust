@@ -90,6 +90,7 @@ fn parse_map(it: &mut std::slice::Iter<String>) -> Result<Vec<Mapping>> {
     Ok(result)
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::utils;
