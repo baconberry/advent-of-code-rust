@@ -1,4 +1,4 @@
-use crate::re_utils;
+
 use anyhow::{bail, Result};
 use std::{cmp::Ordering, collections::HashMap};
 
@@ -14,20 +14,6 @@ enum Hand {
 }
 
 impl Hand {
-    fn from_value(value: usize) -> Result<Hand> {
-        let hand = match value {
-            1 => Hand::HighCard,
-            2 => Hand::OnePair,
-            3 => Hand::TwoPair,
-            4 => Hand::ThreeOfAKind,
-            5 => Hand::FullHouse,
-            6 => Hand::FourOfAKind,
-            7 => Hand::FiveOfAKind,
-            _ => bail!("Unknown value for hand [{}]", value),
-        };
-        Ok(hand)
-    }
-
     fn augment(&self, increase: usize) -> Result<Self> {
         let result = match (&self, increase) {
             (_, 0) => self.clone(),
@@ -61,10 +47,6 @@ impl HandValue {
             value: text.to_string(),
             hand_type: hand,
         }
-    }
-    fn with_augmented_type(&self, increase: usize) -> Result<HandValue> {
-        let augmented_type = self.hand_type.augment(increase)?;
-        Ok(HandValue::new(&self.value, augmented_type))
     }
 }
 
@@ -228,48 +210,6 @@ fn text_to_hand(s: &str) -> Result<HandValue> {
     Ok(HandValue::new(text, Hand::HighCard))
 }
 
-/*
-* Exchange J for the strongest hand
-*/
-fn mutate_js(s: &str, options_opt: Option<String>) -> Result<HandValue> {
-    //println!("Mutating [{}]", s);
-    let mut original_text = s.to_string();
-    let original = text_to_hand(s)?;
-    if !s.contains("J") {
-        return Ok(original);
-    }
-    let mut j_options = match options_opt {
-        Some(v) => v,
-        None => get_unique_chars(&original_text.replace("J", "")),
-    };
-    if j_options.len() == 0 {
-        j_options = "123456789TQKA".to_string();
-    }
-    //println!("j_options [{}]", j_options);
-    let mut max = original;
-    let j_idx = original_text.find("J").unwrap();
-    for c in j_options.chars() {
-        original_text.replace_range(j_idx..j_idx + 1, &c.to_string());
-        let mutated_hand = mutate_js(&original_text, Some(j_options.clone()))?;
-        if let Ordering::Greater = mutated_hand.cmp(&max) {
-            max = mutated_hand;
-        }
-    }
-
-    Ok(max)
-}
-
-fn get_unique_chars(word: &str) -> String {
-    let mut result = String::new();
-
-    for c in word.chars() {
-        if !result.contains(c) {
-            result.push(c);
-        }
-    }
-
-    result
-}
 
 #[cfg(test)]
 mod tests {
@@ -319,40 +259,16 @@ QQQJA 483
         assert_eq!(Ordering::Less, a.cmp(&b));
     }
 
-    #[ignore = "avoiding brute force now"]
-    #[test]
-    fn test_mutate_js() {
-        let text = "JJJJJ";
-        let result = mutate_js(text, None).unwrap();
-        //println!("Better hand for [{}], [{:?}]", text, result);
-        let expect = HandValue::new("AAAAA", Hand::FiveOfAKind);
-        assert_eq!(expect, result);
-
-        let text = "KTJJT";
-        let result = mutate_js(text, None).unwrap();
-        let expect = HandValue::new("KTTTT", Hand::FourOfAKind);
-        //println!("Better hand for [{}], [{:?}]", text, result);
-        assert_eq!(expect, result);
-    }
-
-    #[test]
-    fn test_unique_chars() {
-        let abc = "AAABBBCCCD";
-        let result = get_unique_chars(abc);
-        let expect = "ABCD";
-        assert_eq!(expect, result);
-    }
-
     #[test]
     fn test_augmented() -> Result<()> {
         let text = "2J2JJ";
         let hand = text_to_hand(text)?;
-        assert_eq!(Hand::OnePair, hand.hand_type);
+        let hand_type = hand.hand_type;
+        assert_eq!(Hand::OnePair, hand_type);
 
-        let augmented = hand.with_augmented_type(3)?;
-        assert_eq!(Hand::FiveOfAKind, augmented.hand_type);
+        assert_eq!(Hand::FiveOfAKind, hand_type.augment(3)?);
 
-        let augmented = hand.with_augmented_type(6);
+        let augmented = hand_type.augment(6);
         assert!(augmented.is_err());
         Ok(())
     }
