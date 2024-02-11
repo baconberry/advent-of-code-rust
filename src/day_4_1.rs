@@ -1,6 +1,8 @@
 use regex::Regex;
 use std::collections::HashSet;
 
+#[allow(unused)]
+
 pub fn process_lines(lines: Vec<String>) {
     let mut result = 0;
 
@@ -13,7 +15,7 @@ pub fn process_lines(lines: Vec<String>) {
 
 fn parse_line(line: String) -> usize {
     //println!("Parsing line [{}]", line);
-    if (line.len() == 0) {
+    if line.len() == 0 {
         return 0;
     }
     let mut parts = line.split(":").nth(1).unwrap().split("|");

@@ -1,6 +1,6 @@
 use regex::Regex;
-use std::cmp::{max, min};
 
+#[allow(unused)]
 #[derive(Debug, Clone)]
 struct Position {
     row: i64,

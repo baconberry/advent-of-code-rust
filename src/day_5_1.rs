@@ -1,5 +1,5 @@
 use crate::re_utils;
-use crate::utils;
+
 use anyhow::Result;
 
 struct Mapping {
@@ -90,9 +90,12 @@ fn parse_map(it: &mut std::slice::Iter<String>) -> Result<Vec<Mapping>> {
     Ok(result)
 }
 
-#[test]
-fn test_simple_input() {
-    let input = "seeds: 79 14 55 13
+mod tests {
+    use super::*;
+    use crate::utils;
+    #[test]
+    fn test_simple_input() {
+        let input = "seeds: 79 14 55 13
 
 seed-to-soil map:
 50 98 2
@@ -126,7 +129,8 @@ humidity-to-location map:
 60 56 37
 56 93 4
 ";
-    let lines = utils::string_to_lines(input.to_string());
-    let result = process_lines(lines);
-    assert_eq!(35, result.unwrap());
+        let lines = utils::string_to_lines(input.to_string());
+        let result = process_lines(lines);
+        assert_eq!(35, result.unwrap());
+    }
 }

@@ -1,5 +1,6 @@
 use regex::Regex;
 
+#[allow(unused)]
 #[derive(Debug)]
 pub enum Color {
     Red(usize),

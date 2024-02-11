@@ -1,7 +1,7 @@
-use crate::utils;
 use regex::Regex;
 use std::collections::HashSet;
 
+#[allow(unused)]
 #[derive(Default)]
 struct Card {
     number: usize,
@@ -43,7 +43,7 @@ pub fn process_lines(lines: Vec<String>) {
 
 fn parse_line(line: &str) -> usize {
     //println!("Parsing line [{}]", line);
-    if (line.len() == 0) {
+    if line.len() == 0 {
         return 0;
     }
     let mut parts = line.split(":").nth(1).unwrap().split("|");

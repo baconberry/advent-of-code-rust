@@ -1,6 +1,7 @@
 use regex::Regex;
 use std::cmp;
 
+#[allow(unused)]
 #[derive(Debug)]
 pub enum Color {
     Red(usize),
@@ -44,7 +45,7 @@ pub fn score(line: String) -> usize {
     let mut limits = RGB(0, 0, 0);
     let game_num_re = Regex::new(r"Game (?P<game>\d+):").unwrap();
     let captures = game_num_re.captures(&line).unwrap();
-    let game_num = captures["game"].parse::<usize>().unwrap();
+    let _game_num = captures["game"].parse::<usize>().unwrap();
     let second_part = line.split(":").nth(1).unwrap();
     let part_re = Regex::new(r"(?P<num>\d+) (?P<color>[a-z]+)").unwrap();
     for part in second_part.split(";") {
