@@ -1,5 +1,5 @@
 use crate::re_utils;
-use anyhow::Result;
+use anyhow::{bail, Result};
 use std::{cmp::Ordering, collections::HashMap};
 
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd)]
@@ -11,6 +11,42 @@ enum Hand {
     TwoPair,
     OnePair,
     HighCard,
+}
+
+impl Hand {
+    fn from_value(value: usize) -> Result<Hand> {
+        let hand = match value {
+            1 => Hand::HighCard,
+            2 => Hand::OnePair,
+            3 => Hand::TwoPair,
+            4 => Hand::ThreeOfAKind,
+            5 => Hand::FullHouse,
+            6 => Hand::FourOfAKind,
+            7 => Hand::FiveOfAKind,
+            _ => bail!("Unknown value for hand [{}]", value),
+        };
+        Ok(hand)
+    }
+
+    fn augment(&self, increase: usize) -> Result<Self> {
+        let result = match (&self, increase) {
+            (_, 0) => self.clone(),
+            (Self::HighCard, 1) => Self::OnePair,
+            (Self::HighCard, 2) => Self::ThreeOfAKind,
+            (Self::HighCard, 3) => Self::FourOfAKind,
+            (Self::HighCard, 4) => Self::FiveOfAKind,
+            (Self::OnePair, 1) => Self::ThreeOfAKind,
+            (Self::OnePair, 2) => Self::FourOfAKind,
+            (Self::OnePair, 3) => Self::FiveOfAKind,
+            (Self::TwoPair, 1) => Self::FullHouse,
+            (Self::ThreeOfAKind, 1) => Self::FourOfAKind,
+            (Self::ThreeOfAKind, 2) => Self::FiveOfAKind,
+            (Self::FourOfAKind, 1) => Self::FiveOfAKind,
+            (_, _) => bail!("Invalid augmented type"),
+        };
+
+        Ok(result)
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd)]
@@ -26,13 +62,16 @@ impl HandValue {
             hand_type: hand,
         }
     }
+    fn with_augmented_type(&self, increase: usize) -> Result<HandValue> {
+        let augmented_type = self.hand_type.augment(increase)?;
+        Ok(HandValue::new(&self.value, augmented_type))
+    }
 }
 
 #[derive(Debug, Eq, PartialEq, PartialOrd)]
 struct Bet {
     bid: usize,
-    best_hand: HandValue,
-    original_hand: HandValue,
+    hand: HandValue,
 }
 
 trait Value {
@@ -65,9 +104,9 @@ impl Ord for HandValue {
 
 impl Ord for Bet {
     fn cmp(&self, other: &Self) -> Ordering {
-        let best_cmp = self.best_hand.hand_type.cmp(&other.best_hand.hand_type);
+        let best_cmp = self.hand.hand_type.cmp(&other.hand.hand_type);
         if best_cmp.is_eq() {
-            return compare_hand_text(&self.original_hand.value, &other.original_hand.value);
+            return compare_hand_text(&self.hand.value, &other.hand.value);
         }
         best_cmp
     }
@@ -137,24 +176,33 @@ fn line_to_bet(line: &str) -> Result<Bet> {
     let hand_text = parts.next().unwrap();
     let bid = parts.next().unwrap().parse::<usize>()?;
     let hand_value = text_to_hand(hand_text)?;
+    let js = count_js(&hand_text);
+    let hand_value = match js {
+        _ if js == 5 => Hand::FiveOfAKind,
+        j if js < 5 => hand_value.hand_type.augment(j)?,
+        _ => bail!("Error line_to_bet [{}]", line),
+    };
     Ok(Bet {
-        best_hand: mutate_js(&hand_text, None)?,
-        original_hand: hand_value,
+        hand: HandValue::new(hand_text, hand_value),
         bid,
     })
 }
 
-fn text_to_hand(text: &str) -> Result<HandValue> {
-    let s = text.to_string();
+fn count_js(text: &str) -> usize {
+    text.chars().filter(|c| c == &'J').count()
+}
+
+fn text_to_hand(s: &str) -> Result<HandValue> {
+    let text = &s.replace("J", "");
     let mut map: HashMap<char, usize> = HashMap::new();
     for c in text.chars() {
         *map.entry(c).or_insert(0) += 1;
     }
+    let values: Vec<usize> = map.values().map(|a| *a).collect();
     ////println!("Text map for [{}], [{:?}]", text, map);
-    if map.len() == 1 {
+    if values.contains(&5) {
         return Ok(HandValue::new(text, Hand::FiveOfAKind));
     }
-    let values: Vec<usize> = map.values().map(|a| *a).collect();
     ////println!("Values [{:?}]", values);
     if values.contains(&4) {
         return Ok(HandValue::new(text, Hand::FourOfAKind));
@@ -165,10 +213,16 @@ fn text_to_hand(text: &str) -> Result<HandValue> {
     if values.contains(&3) {
         return Ok(HandValue::new(text, Hand::ThreeOfAKind));
     }
-    if values.contains(&2) && map.len() == 3 {
+    let mut pairs = 0;
+    for v in values {
+        if v == 2 {
+            pairs += 1;
+        }
+    }
+    if pairs == 2 {
         return Ok(HandValue::new(text, Hand::TwoPair));
     }
-    if values.contains(&2) {
+    if pairs == 1 {
         return Ok(HandValue::new(text, Hand::OnePair));
     }
     Ok(HandValue::new(text, Hand::HighCard))
@@ -265,6 +319,7 @@ QQQJA 483
         assert_eq!(Ordering::Less, a.cmp(&b));
     }
 
+    #[ignore = "avoiding brute force now"]
     #[test]
     fn test_mutate_js() {
         let text = "JJJJJ";
@@ -286,5 +341,19 @@ QQQJA 483
         let result = get_unique_chars(abc);
         let expect = "ABCD";
         assert_eq!(expect, result);
+    }
+
+    #[test]
+    fn test_augmented() -> Result<()> {
+        let text = "2J2JJ";
+        let hand = text_to_hand(text)?;
+        assert_eq!(Hand::OnePair, hand.hand_type);
+
+        let augmented = hand.with_augmented_type(3)?;
+        assert_eq!(Hand::FiveOfAKind, augmented.hand_type);
+
+        let augmented = hand.with_augmented_type(6);
+        assert!(augmented.is_err());
+        Ok(())
     }
 }
