@@ -1,5 +1,6 @@
 use crate::re_utils;
 use crate::utils;
+use anyhow::{bail, Result};
 use rayon;
 use rayon::prelude::*;
 
@@ -9,7 +10,7 @@ struct Mapping {
     range: usize,
 }
 
-pub fn process_lines(lines: Vec<String>) -> usize {
+pub fn process_lines(lines: Vec<String>) -> Result<usize> {
     let mut seed_to_soil_map: Vec<Mapping> = vec![];
     let mut soil_to_fertilizer: Vec<Mapping> = vec![];
     let mut fertilizer_to_water: Vec<Mapping> = vec![];
@@ -19,7 +20,7 @@ pub fn process_lines(lines: Vec<String>) -> usize {
     let mut humidity_to_location: Vec<Mapping> = vec![];
 
     let mut line_it = lines.iter();
-    let initial_seeds = re_utils::parse_line_numbers(line_it.next().unwrap());
+    let initial_seeds = re_utils::parse_line_numbers(line_it.next().unwrap())?;
     println!("Initial seeds [{:?}]", initial_seeds);
 
     loop {
@@ -33,13 +34,13 @@ pub fn process_lines(lines: Vec<String>) -> usize {
         }
         println!("Parsing header [{}]", header);
         match &header[0..12] {
-            "seed-to-soil" => seed_to_soil_map = parse_map(&mut line_it),
-            "soil-to-fert" => soil_to_fertilizer = parse_map(&mut line_it),
-            "fertilizer-t" => fertilizer_to_water = parse_map(&mut line_it),
-            "water-to-lig" => water_to_light = parse_map(&mut line_it),
-            "light-to-tem" => light_to_temperature = parse_map(&mut line_it),
-            "temperature-" => temperature_to_humidity = parse_map(&mut line_it),
-            "humidity-to-" => humidity_to_location = parse_map(&mut line_it),
+            "seed-to-soil" => seed_to_soil_map = parse_map(&mut line_it)?,
+            "soil-to-fert" => soil_to_fertilizer = parse_map(&mut line_it)?,
+            "fertilizer-t" => fertilizer_to_water = parse_map(&mut line_it)?,
+            "water-to-lig" => water_to_light = parse_map(&mut line_it)?,
+            "light-to-tem" => light_to_temperature = parse_map(&mut line_it)?,
+            "temperature-" => temperature_to_humidity = parse_map(&mut line_it)?,
+            "humidity-to-" => humidity_to_location = parse_map(&mut line_it)?,
             _ => break,
         }
     }
@@ -66,7 +67,7 @@ pub fn process_lines(lines: Vec<String>) -> usize {
         }
     }
 
-    result
+    Ok(result)
 }
 
 fn find(mapping: &Vec<Mapping>, source: usize) -> usize {
@@ -79,7 +80,7 @@ fn find(mapping: &Vec<Mapping>, source: usize) -> usize {
     source
 }
 
-fn parse_map(it: &mut std::slice::Iter<String>) -> Vec<Mapping> {
+fn parse_map(it: &mut std::slice::Iter<String>) -> Result<Vec<Mapping>> {
     let mut result: Vec<Mapping> = vec![];
     loop {
         match it.next() {
@@ -87,7 +88,7 @@ fn parse_map(it: &mut std::slice::Iter<String>) -> Vec<Mapping> {
                 if line.len() == 0 {
                     break;
                 }
-                let (destination, source, range) = re_utils::parse_3(line);
+                let (destination, source, range) = re_utils::parse_3(line)?;
                 result.push(Mapping {
                     source,
                     destination,
@@ -97,7 +98,7 @@ fn parse_map(it: &mut std::slice::Iter<String>) -> Vec<Mapping> {
             None => break,
         }
     }
-    result
+    Ok(result)
 }
 
 #[test]
@@ -138,5 +139,5 @@ humidity-to-location map:
 ";
     let lines = utils::string_to_lines(input.to_string());
     let result = process_lines(lines);
-    assert_eq!(46, result);
+    assert_eq!(46, result.unwrap());
 }
