@@ -15,6 +15,7 @@ mod day_7_2;
 mod day_8_1;
 mod day_8_2;
 mod day_9_1;
+mod day_9_2;
 mod prelude;
 mod re_utils;
 mod trebuchet;
@@ -24,6 +25,6 @@ mod utils;
 #[allow(unused)]
 fn main() {
     let lines = read_lines("input.txt".to_string());
-    let result = day_9_1::process_lines(lines);
+    let result = day_9_2::process_lines(lines);
     println!("Result [{:?}]", result);
 }
