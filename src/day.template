@@ -1,0 +1,19 @@
+use anyhow::{bail, Result};
+
+pub fn process_lines(lines: Vec<String>) -> Result<usize> {
+    todo!()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::utils;
+
+    #[test]
+    fn test_simple_input() {
+        let input = "";
+        let lines = utils::string_to_lines(input.to_string());
+        let result = process_lines(lines);
+        assert_eq!(123, result.unwrap());
+    }
+}

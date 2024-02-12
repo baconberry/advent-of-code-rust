@@ -1,4 +1,3 @@
-
 use anyhow::{bail, Result};
 use std::{cmp::Ordering, collections::HashMap};
 
@@ -209,7 +208,6 @@ fn text_to_hand(s: &str) -> Result<HandValue> {
     }
     Ok(HandValue::new(text, Hand::HighCard))
 }
-
 
 #[cfg(test)]
 mod tests {
