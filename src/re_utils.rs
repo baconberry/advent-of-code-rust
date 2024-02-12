@@ -11,6 +11,16 @@ pub fn parse_line_numbers(line: &str) -> Result<Vec<usize>> {
     Ok(result)
 }
 
+pub fn parse_line_numbers_i64(line: &str) -> Result<Vec<i64>> {
+    let re = Regex::new(r"(-?\d+)")?;
+    let mut result: Vec<i64> = vec![];
+    for num in re.find_iter(line) {
+        result.push(num.as_str().parse::<i64>()?);
+    }
+
+    Ok(result)
+}
+
 pub fn parse_3(line: &str) -> Result<(usize, usize, usize)> {
     let nums = parse_line_numbers(line)?;
     if nums.len() < 3 {
