@@ -1,18 +1,20 @@
-use anyhow::Result;
 use crate::re_utils;
+use anyhow::Result;
 //use std::cmp::{min,max};
 
 type number = i64;
 type Vuz = Vec<number>;
 
 pub fn process_lines(lines: Vec<String>) -> Result<number> {
-    let result = lines.iter()
-        .filter(|l| l.len()>0)
+    let result = lines
+        .iter()
+        .filter(|l| l.len() > 0)
         .map(|l| process_line(l))
         .map(|r| match r {
             Ok(r) => r,
-            _ => 0
-        }).sum::<number>();
+            _ => 0,
+        })
+        .sum::<number>();
 
     Ok(result)
 }
@@ -25,15 +27,15 @@ fn process_line(line: &str) -> Result<number> {
 
 fn process_nums(nums: &Vuz) -> Result<number> {
     //println!("process_nums input [{:+?}]", nums);
-    let all_zeroes = nums.iter().all(|a| *a==0);
-    if all_zeroes || nums.len()==0 {
+    let all_zeroes = nums.iter().all(|a| *a == 0);
+    if all_zeroes || nums.len() == 0 {
         return Ok(0);
     }
     let mut reduced: Vuz = vec![];
 
-    for i in 0..nums.len()-1 {
-        let (a,b) = (nums[i], nums[i+1]);
-        reduced.push(diff(a,b));
+    for i in 0..nums.len() - 1 {
+        let (a, b) = (nums[i], nums[i + 1]);
+        reduced.push(diff(a, b));
     }
 
     let augment_value = process_nums(&reduced)?;
@@ -46,11 +48,10 @@ fn diff_to_augment(val: number, difference: number) -> number {
     val + difference
 }
 
-fn diff(a: number, b:number) -> number {
+fn diff(a: number, b: number) -> number {
     //max(a,b)-min(a,b)
-    b-a
+    b - a
 }
-
 
 #[cfg(test)]
 mod tests {

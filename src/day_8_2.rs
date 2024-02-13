@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
 use anyhow::{bail, Result};
-use regex::Regex;
+use num::integer::lcm;
 use rayon;
 use rayon::prelude::*;
-use num::integer::lcm;
+use regex::Regex;
 
 #[derive(Clone, Debug)]
 struct Node {
@@ -39,21 +39,23 @@ pub fn process_lines(lines: Vec<String>) -> Result<usize> {
                 if key.ends_with("A") {
                     starter_nodes.push(key);
                 }
-
             }
         }
     }
 
-    let starters: &Vec<&Node> = &starter_nodes.iter()
+    let starters: &Vec<&Node> = &starter_nodes
+        .iter()
         .map(|k| map.get(k))
         .map(|o| o.unwrap())
         .collect();
-    let finals: Vec<(Node, usize)> = starters.par_iter()
+    let finals: Vec<(Node, usize)> = starters
+        .par_iter()
         .map(|n| navigate_one(&step, n, &map).unwrap())
         .collect();
-    let result = finals.iter()
+    let result = finals
+        .iter()
         .map(|p| p.1)
-        .fold(1 as usize, |acc,e| lcm(acc, e));
+        .fold(1 as usize, |acc, e| lcm(acc, e));
     Ok(result)
 }
 
