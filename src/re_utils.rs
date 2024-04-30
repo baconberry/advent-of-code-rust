@@ -29,3 +29,12 @@ pub fn parse_3(line: &str) -> Result<(usize, usize, usize)> {
 
     Ok((nums[0], nums[1], nums[2]))
 }
+
+// returns a vector with the location of every char within the line
+pub fn parse_loc(line: &str, c: &char) -> Result<Vec<usize>> {
+    Ok(line.chars().enumerate()
+        .filter(|(_i, val)| val == c)
+        .map(|(i, _val)| i)
+        .collect()
+    )
+}
