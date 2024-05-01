@@ -1,12 +1,12 @@
-use std::collections::{hash_map, HashMap, HashSet, VecDeque};
+
 use crate::re_utils;
 
-use anyhow::{bail, Result};
+use anyhow::{Result};
 
 
 
 pub fn process_lines(lines: Vec<String>) -> Result<usize> {
-    let galaxy_char = '#';
+    let _galaxy_char = '#';
     let mut sum: usize = 0;
     for line in lines {
         if line.is_empty() {
