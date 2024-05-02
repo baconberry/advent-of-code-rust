@@ -1,5 +1,6 @@
 use utils::read_lines;
 
+mod day_12_2;
 mod day_12_1;
 mod day_11_2;
 mod day_11_1;
@@ -29,6 +30,6 @@ mod utils;
 #[allow(unused)]
 fn main() {
     let lines = read_lines("input.txt".to_string());
-    let result = day_12_1::process_lines(lines);
+    let result = day_12_2::process_lines(lines);
     println!("Result [{:?}]", result);
 }
