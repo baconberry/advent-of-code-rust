@@ -1,10 +1,12 @@
 
 
-use std::{collections::HashMap, thread::{sleep, sleep_ms, Thread}, time::Duration};
+use std::{collections::HashMap, hash::Hash, thread::{sleep, sleep_ms, Thread}, time::Duration};
 
 use crate::re_utils;
 
 use anyhow::Result;
+use rayon;
+use rayon::prelude::*;
 
 /*
 * Because rust is so fast given `--release`, this is the first problem 
@@ -22,21 +24,23 @@ pub fn process_lines(lines: Vec<String>) -> Result<usize> {
         if line.is_empty() {
             continue;
         }
-        println!("Got line {}", line);
+        //println!("Got line {}", line);
         let line = unfold(&line);
         let (seq, groups) = get_components(&line);
-        println!("Processing {}, {:?}", seq, groups);
+        //println!("Processing {}, {:?}", seq, groups);
         let mut memo: Memo = HashMap::new();
-        sum += brute_force_chunk(&seq, &groups);
+        let result = brute_force_chunk(&seq, &groups);
+        sum += result;
+        println!("Result for: {}, {}", line, result);
     }
     Ok(sum)
 }
 
 fn brute_force_chunk(line: &str, groups: &[usize]) -> usize {
-    println!("BF_chunk line {}, groups {:?}", line, groups);
+    //println!("BF_chunk line {}, groups {:?}", line, groups);
     if line.is_empty(){
         if groups.is_empty() {
-            println!("line and group empty, returning 1");
+            //println!("line and group empty, returning 1");
             return 1;
         }
         return 0;
@@ -50,7 +54,7 @@ fn brute_force_chunk(line: &str, groups: &[usize]) -> usize {
     };
     //println!("left_chunk {}, right_chunk {}", left_chunk, right_chunk);
     let left_result =  process_chunk(left_chunk, groups);
-    println!("Left_result {:?}", left_result);
+    //println!("Left_result {:?}", left_result);
     for r in left_result {
         if let Some(remaining_groups) = groups.strip_prefix(r.as_slice()) {
            // println!("chunk-result {:?}, RemainingGroup {:?}", r, remaining_groups);
@@ -61,15 +65,23 @@ fn brute_force_chunk(line: &str, groups: &[usize]) -> usize {
     sum
 }
 
+fn get_memo_key(line: &str, groups: &[usize]) -> String {
+    let first: Vec<String> = groups.iter()
+        .map(|n|n.to_string())
+        .collect();
+    /*
+    let first = match groups.first(){
+        Some(n) => format!("{}", n),
+        None => "".to_string()
+    };
+    */
+
+    line.to_string() + &first.join("")
+}
+
+
 // a chunk is on the form XXX.: X being != .
 fn process_chunk(chunk: &str, groups: &[usize]) -> MemoResult {
-    if groups.len() < 2 {
-        println!("Processing chunk {}, groups {:?}", chunk, groups);
-    }
-    //println!("Processing chunk {}, groups {:?}", chunk, groups);
-    //sleep_ms(2000);
-
-
     let mut result: Vec<Vec<usize>> = Vec::new();
     if let Some(wildcard_location) = chunk.find('?') {
         let left = &chunk[0..wildcard_location];
@@ -88,19 +100,21 @@ fn process_chunk(chunk: &str, groups: &[usize]) -> MemoResult {
         let operational_right_chars = right;
         //sleep(Duration::from_secs(1));
         let operational_left = process_chunk(&operational_left_chars, groups);
+        
         for l in &operational_left {
             //println!("Groups {:?}, prefix {:?}, left {}, right {}", groups, l, operational_left_chars, operational_right_chars);
             
             if let Some(groups_right) = groups.strip_prefix(l.as_slice()){
                 //println!("Is prefix");
                 let operational_right = process_chunk(&operational_right_chars, groups_right);
-                println!("right_chars: {}, right_result {:?}", operational_right_chars, operational_right);
+                //println!("right_chars: {}, right_result {:?}", operational_right_chars, operational_right);
+
                 for r in &operational_right {
                     if let Some(_) = groups_right.strip_prefix(r.as_slice()){
                         let mut v = l.clone();
                         v.extend(r);
                         result.push(v);
-                        println!("Pushing result left {}, right {}, result {:?}", left, right, result);
+                        //println!("Pushing result left {}, right {}, result {:?}", left, right, result);
                     }
                 }
             }
@@ -120,12 +134,13 @@ fn process_chunk(chunk: &str, groups: &[usize]) -> MemoResult {
             result.push(vec![count]);
         }
     }
+    //memo.insert(memo_key, result.clone());
     result
 }
 
 fn unfold(line: &str) -> String {
     let (seq, groups) = get_components(&line);
-    println!("Got components seq {}, groups {:?}", seq, groups);
+    //println!("Got components seq {}, groups {:?}", seq, groups);
     let mut result = String::with_capacity(line.len() * 5);
     for _i in 0..UNFOLD_TIMES {
         result.push_str(&seq);
@@ -140,7 +155,7 @@ fn unfold(line: &str) -> String {
         result.push_str(&group_text);
     }
     let result = result.trim_end_matches(",");
-    println!("Return unfold {}", result);
+    //println!("Return unfold {}", result);
     result.to_string()
 }
 
@@ -172,8 +187,8 @@ mod tests {
         test_line(input, 16);
         let input = "????.######..#####. 1,6,5";
         test_line(input, 2500);
-        //let input = "?###???????? 3,2,1";
-        //test_line(input, 506250);
+        let input = "?###???????? 3,2,1";
+        test_line(input, 506250);
     }
 
     fn test_line(line: &str, expect: usize) {
