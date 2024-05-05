@@ -3,35 +3,6 @@ use crate::re_utils;
 
 use anyhow::{Result};
 
-/*
-* The problem states that we can only have 
-* - operotional as a `.`
-* - damaged as a `#`
-*
-* This already hints to a binary format, but to make things even more fun,
-* - placeholder `?` 
-*
-* This hints a binary transformation of the "text", so why not making it a
-* real binary representation
-*
-* - "...###..##.." -> "000111001100"
-* - "???..##..?" -> "???XXXXXX?" -> "1110000001"
-*
-* This last one indicates with `1`s the places where another regular text can
-* mutate.
-*
-* Now the problem is, if this is represented with a single number, we have a 
-* limitation on how many digits/chars we can store, so is there a bitset in
-* rust?
-*
-* - It looks like there is in old rust or in a bit-set crate
-*
-* however, I don't think the mutation of the string is the time consuming factor
-* as the complexity of the algorithm is O(2^n * n), let's see if we can do better
-*
-*
-*/
-
 pub fn process_lines(lines: Vec<String>) -> Result<usize> {
     let _galaxy_char = '#';
     let mut sum: usize = 0;

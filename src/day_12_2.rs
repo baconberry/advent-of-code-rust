@@ -10,12 +10,10 @@ use rayon::prelude::*;
 
 /*
 * Because rust is so fast given `--release`, this is the first problem 
-* in this set that a bruteforce solution won't do, so at the moment, this is 
-* a WIP and will optimize the 12_1 which will be fine for 12_2 
+* in this set that a bruteforce solution won't do.
+* introducing DP with memoization 
 */
 const UNFOLD_TIMES: usize = 5;
-type MemoResult = Vec<Vec<usize>>;
-type Memo = HashMap<String, MemoResult>;
 
 pub fn process_lines(lines: Vec<String>) -> Result<usize> {
     let _galaxy_char = '#';
@@ -28,15 +26,19 @@ pub fn process_lines(lines: Vec<String>) -> Result<usize> {
         let line = unfold(&line);
         let (seq, groups) = get_components(&line);
         //println!("Processing {}, {:?}", seq, groups);
-        let mut memo: Memo = HashMap::new();
-        let result = mutate_line(&seq,&groups);
-        println!("Result for: {}, {:?}", line, result);
+        let mut memo: HashMap<(String, Vec<usize>), usize> = HashMap::new();
+        let result = mutate_line(&seq,&groups, &mut memo);
+        //println!("Result for: {}, {:?}", line, result);
         sum += result;
     }
     Ok(sum)
 }
 
-fn mutate_line(chunk: &str, groups: &[usize]) -> usize {
+fn mutate_line(chunk: &str, groups: &[usize], memo: &mut HashMap<(String, Vec<usize>), usize>) -> usize {
+    let memo_key = (chunk.to_string(), groups.to_vec());
+    if memo.contains_key(&memo_key) {
+        return memo[&memo_key];
+    }
     if chunk.is_empty() && groups.is_empty() {
         return 1;
     }
@@ -48,7 +50,7 @@ fn mutate_line(chunk: &str, groups: &[usize]) -> usize {
         let left = &chunk[0..wildcard_location]; // this should not have wildcards anymore
         let right = &chunk[1+wildcard_location..];
         let damaged = left.to_owned() + "#" + right;
-        let damaged_count = mutate_line(&damaged, groups);
+        let damaged_count = mutate_line(&damaged, groups, memo);
         sum += damaged_count;
 
         /*
@@ -56,18 +58,18 @@ fn mutate_line(chunk: &str, groups: &[usize]) -> usize {
         */
         if let Some(left_shift) = process_chunk(left, groups) {
             let right_groups = &groups[left_shift..];
-            let right_sum = mutate_line(right, right_groups);
+            let right_sum = mutate_line(right, right_groups, memo);
             sum += right_sum;
         }
     } else {
         //no wildcards
         if let Some(shift) = process_chunk(chunk, groups) {
             let right_groups = &groups[shift..];
-            let right_sum = mutate_line("", right_groups);
+            let right_sum = mutate_line("", right_groups, memo);
             sum += right_sum;
         }
     }
-
+    memo.insert(memo_key, sum);
     sum
 }
 
