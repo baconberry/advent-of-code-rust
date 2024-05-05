@@ -29,113 +29,70 @@ pub fn process_lines(lines: Vec<String>) -> Result<usize> {
         let (seq, groups) = get_components(&line);
         //println!("Processing {}, {:?}", seq, groups);
         let mut memo: Memo = HashMap::new();
-        let result = brute_force_chunk(&seq, &groups);
+        let result = mutate_line(&seq,&groups);
+        println!("Result for: {}, {:?}", line, result);
         sum += result;
-        println!("Result for: {}, {}", line, result);
     }
     Ok(sum)
 }
 
-fn brute_force_chunk(line: &str, groups: &[usize]) -> usize {
-    //println!("BF_chunk line {}, groups {:?}", line, groups);
-    if line.is_empty(){
-        if groups.is_empty() {
-            //println!("line and group empty, returning 1");
-            return 1;
-        }
+fn mutate_line(chunk: &str, groups: &[usize]) -> usize {
+    if chunk.is_empty() && groups.is_empty() {
+        return 1;
+    }
+    if chunk.is_empty() {
         return 0;
     }
-    //sleep(Duration::from_secs(1));
     let mut sum: usize = 0;
-    let (left_chunk, right_chunk) = if let Some(dot_location) = line.find('.') {
-        ( &line[..dot_location+1], &line[dot_location+1..])
-    }else{
-        (line, "")
-    };
-    //println!("left_chunk {}, right_chunk {}", left_chunk, right_chunk);
-    let left_result =  process_chunk(left_chunk, groups);
-    //println!("Left_result {:?}", left_result);
-    for r in left_result {
-        if let Some(remaining_groups) = groups.strip_prefix(r.as_slice()) {
-           // println!("chunk-result {:?}, RemainingGroup {:?}", r, remaining_groups);
-            sum += brute_force_chunk(right_chunk, remaining_groups);
+    if let Some(wildcard_location) = chunk.find('?') {
+        let left = &chunk[0..wildcard_location]; // this should not have wildcards anymore
+        let right = &chunk[1+wildcard_location..];
+        let damaged = left.to_owned() + "#" + right;
+        let damaged_count = mutate_line(&damaged, groups);
+        sum += damaged_count;
+
+        /*
+        * if left does not shift, then there is no point to process right :)
+        */
+        if let Some(left_shift) = process_chunk(left, groups) {
+            let right_groups = &groups[left_shift..];
+            let right_sum = mutate_line(right, right_groups);
+            sum += right_sum;
+        }
+    } else {
+        //no wildcards
+        if let Some(shift) = process_chunk(chunk, groups) {
+            let right_groups = &groups[shift..];
+            let right_sum = mutate_line("", right_groups);
+            sum += right_sum;
         }
     }
-    
+
     sum
 }
 
-fn get_memo_key(line: &str, groups: &[usize]) -> String {
-    let first: Vec<String> = groups.iter()
-        .map(|n|n.to_string())
-        .collect();
-    /*
-    let first = match groups.first(){
-        Some(n) => format!("{}", n),
-        None => "".to_string()
-    };
-    */
 
-    line.to_string() + &first.join("")
+//no wildcard should be here
+fn process_chunk(chunk: &str, groups: &[usize]) -> Option<usize> { // group shift, counter
+    debug_assert!(!chunk.contains("?"));
+    let chunk_groups = count_chunk(chunk);
+    if chunk_groups.is_empty() || groups.starts_with(&chunk_groups) {
+        return Some(chunk_groups.len());
+    }
+    None
 }
 
-
-// a chunk is on the form XXX.: X being != .
-fn process_chunk(chunk: &str, groups: &[usize]) -> MemoResult {
-    let mut result: Vec<Vec<usize>> = Vec::new();
-    if let Some(wildcard_location) = chunk.find('?') {
-        let left = &chunk[0..wildcard_location];
-        let right = &chunk[1+wildcard_location..];
-        assert!(chunk.len() == 1 + left.len() + right.len());
-        //println!("chunk: {}, left {}, right {}", chunk, left, right);
-        let damaged_chars = left.to_owned() + "#" + right;
-        assert!(chunk.len() == damaged_chars.len());
-        let damaged = process_chunk(&damaged_chars, groups);
-        for r in &damaged {
-            if let Some(_) = groups.strip_prefix(r.as_slice()){
-                result.push(r.to_vec());
-            }
-        }
-        let operational_left_chars = left;
-        let operational_right_chars = right;
-        //sleep(Duration::from_secs(1));
-        let operational_left = process_chunk(&operational_left_chars, groups);
-        
-        for l in &operational_left {
-            //println!("Groups {:?}, prefix {:?}, left {}, right {}", groups, l, operational_left_chars, operational_right_chars);
-            
-            if let Some(groups_right) = groups.strip_prefix(l.as_slice()){
-                //println!("Is prefix");
-                let operational_right = process_chunk(&operational_right_chars, groups_right);
-                //println!("right_chars: {}, right_result {:?}", operational_right_chars, operational_right);
-
-                for r in &operational_right {
-                    if let Some(_) = groups_right.strip_prefix(r.as_slice()){
-                        let mut v = l.clone();
-                        v.extend(r);
-                        result.push(v);
-                        //println!("Pushing result left {}, right {}, result {:?}", left, right, result);
-                    }
-                }
-            }
-        }
-        //println!("Damaged {}, result {:?}", damaged_chars, damaged);
-        /*println!("Op_left: {}, Op_right {}, res_left {:?}, res_right {:?}, result {:?}", 
-            operational_left_chars, operational_right_chars, 
-            operational_left, operational_right,
-            result);
-        */
-    } else {
-        //println!("pre P_chunk result, should not have more than 1 . = {}", chunk);
-        let count = chunk.chars().filter(|c| c == &'#').count();
-        if count == 0 {
-            result.push(vec![]);
-        }else{
-            result.push(vec![count]);
-        }
+fn count_chunk(chunk: &str) -> Vec<usize> {
+    if chunk.is_empty() {
+        return vec![];
     }
-    //memo.insert(memo_key, result.clone());
-    result
+    chunk.split('.')
+        .filter(|s| !s.is_empty())
+        .map(|s| {
+            debug_assert!(!s.contains("."));
+            s.len()
+        })
+        .collect()
 }
 
 fn unfold(line: &str) -> String {
