@@ -2,10 +2,10 @@ use crate::re_utils;
 use anyhow::Result;
 //use std::cmp::{min,max};
 
-type number = i64;
-type Vuz = Vec<number>;
+type Number = i64;
+type Vuz = Vec<Number>;
 
-pub fn process_lines(lines: Vec<String>) -> Result<number> {
+pub fn process_lines(lines: Vec<String>) -> Result<Number> {
     let result = lines
         .iter()
         .filter(|l| l.len() > 0)
@@ -14,18 +14,18 @@ pub fn process_lines(lines: Vec<String>) -> Result<number> {
             Ok(r) => r,
             _ => 0,
         })
-        .sum::<number>();
+        .sum::<Number>();
 
     Ok(result)
 }
 
-fn process_line(line: &str) -> Result<number> {
+fn process_line(line: &str) -> Result<Number> {
     let nums = re_utils::parse_line_numbers_i64(line)?;
     let res = process_nums(&nums)?;
     Ok(diff_to_augment(*nums.last().unwrap(), res))
 }
 
-fn process_nums(nums: &Vuz) -> Result<number> {
+fn process_nums(nums: &Vuz) -> Result<Number> {
     //println!("process_nums input [{:+?}]", nums);
     let all_zeroes = nums.iter().all(|a| *a == 0);
     if all_zeroes || nums.len() == 0 {
@@ -44,11 +44,11 @@ fn process_nums(nums: &Vuz) -> Result<number> {
 
     Ok(result)
 }
-fn diff_to_augment(val: number, difference: number) -> number {
+fn diff_to_augment(val: Number, difference: Number) -> Number {
     val + difference
 }
 
-fn diff(a: number, b: number) -> number {
+fn diff(a: Number, b: Number) -> Number {
     //max(a,b)-min(a,b)
     b - a
 }

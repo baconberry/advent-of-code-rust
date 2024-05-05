@@ -1,7 +1,6 @@
-
 use crate::re_utils;
 
-use anyhow::{Result};
+use anyhow::Result;
 
 pub fn process_lines(lines: Vec<String>) -> Result<usize> {
     let _galaxy_char = '#';
@@ -21,18 +20,22 @@ fn get_components(line: &str) -> (String, Vec<usize>) {
     let mut split = line.split(" ");
     let text = split.next().unwrap();
     let groups = split.next().unwrap();
-    (text.to_string(), re_utils::parse_line_numbers(groups).expect("Invalid group numbers"))
+    (
+        text.to_string(),
+        re_utils::parse_line_numbers(groups).expect("Invalid group numbers"),
+    )
 }
 
 fn brute_force(line: &str, groups: &Vec<usize>) -> usize {
     if let Some(wildcard_location) = line.find('?') {
-    let left = &line[0..wildcard_location];
-    let right = &line[1+wildcard_location..];
+        let left = &line[0..wildcard_location];
+        let right = &line[1 + wildcard_location..];
         let damaged = left.to_owned() + "#" + right;
         let operational = left.to_owned() + "." + right;
         return brute_force(&damaged, groups) + brute_force(&operational, groups);
     }
-    let split: Vec<usize> = line.split(".")
+    let split: Vec<usize> = line
+        .split(".")
         .filter(|chunk| !chunk.is_empty())
         .map(|chunk| chunk.len())
         .collect();
@@ -70,7 +73,4 @@ mod tests {
         let result = process_lines(lines);
         assert_eq!(expect, result.unwrap());
     }
-
-
 }
-

@@ -67,7 +67,7 @@ pub fn process_lines(lines: Vec<String>) {
     println!("Result is [{}]", result);
 }
 
-pub fn find_adjacent_parts(symbol: &Symbol, parts: &Vec<Part>) -> Vec<Part> {
+fn find_adjacent_parts(symbol: &Symbol, parts: &Vec<Part>) -> Vec<Part> {
     let mut result: Vec<Part> = vec![];
 
     for part in parts {

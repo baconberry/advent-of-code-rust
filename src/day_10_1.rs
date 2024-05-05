@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use anyhow::{Result};
+use anyhow::Result;
 
 type Number = i64;
 type NumberPair = (Number, Number);

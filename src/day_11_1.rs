@@ -1,7 +1,7 @@
-use std::collections::{HashMap};
 use crate::re_utils;
+use std::collections::HashMap;
 
-use anyhow::{Result};
+use anyhow::Result;
 
 type Number = i64;
 type NumberPair = (usize, usize);
@@ -10,29 +10,25 @@ type Universe = Vec<Vec<Position>>;
 #[derive(Clone, Eq, Hash, PartialEq, Debug)]
 struct Position {
     row: usize,
-    column: usize
+    column: usize,
 }
 
 impl Position {
-    
     fn new(x: usize, y: usize) -> Self {
-        Position {
-            row: y,
-            column: x
-        }
+        Position { row: y, column: x }
     }
 
     fn augment_row(&self, agg_row: usize) -> Self {
         Position {
-            row: self.row+agg_row,
-            column: self.column
+            row: self.row + agg_row,
+            column: self.column,
         }
     }
 
     fn augment_column(&self, agg_col: usize) -> Self {
         Position {
             row: self.row,
-            column: self.column+agg_col
+            column: self.column + agg_col,
         }
     }
 
@@ -41,14 +37,12 @@ impl Position {
     }
 
     fn is_same(&self, other: &Self) -> bool {
-        self.column == other.column &&
-        self.row == other.row
+        self.column == other.column && self.row == other.row
     }
 
     fn is_greater(&self, other: &Self) -> bool {
-        self.row > other.row || ( self.row == other.row && self.column > other.column )
+        self.row > other.row || (self.row == other.row && self.column > other.column)
     }
-
 }
 
 fn diff(a: usize, b: usize) -> usize {
@@ -57,10 +51,7 @@ fn diff(a: usize, b: usize) -> usize {
     } else {
         b - a
     }
-
 }
-
-
 
 pub fn process_lines(lines: Vec<String>) -> Result<usize> {
     let mut universe: Universe = Vec::new();
@@ -68,9 +59,10 @@ pub fn process_lines(lines: Vec<String>) -> Result<usize> {
     for (line_no, line) in lines.iter().enumerate() {
         let locations = re_utils::parse_loc(&line, &galaxy_char)?;
         universe.push(
-            locations.iter()
-            .map(|x| Position::new(*x, line_no))
-            .collect()
+            locations
+                .iter()
+                .map(|x| Position::new(*x, line_no))
+                .collect(),
         );
     }
     let universe = expand_universe(universe);
@@ -92,7 +84,6 @@ fn sum_all_positions(all_positions: &Vec<Position>) -> usize {
     sum
 }
 
-
 fn expand_universe(universe: Universe) -> Vec<Position> {
     let row_universe = expand_universe_rows(universe);
     expand_universe_columns(row_universe)
@@ -106,14 +97,15 @@ fn expand_universe_columns(universe: Universe) -> Vec<Position> {
             if max_col < pos.column {
                 max_col = pos.column;
             }
-            universe_by_col.entry(pos.column)
+            universe_by_col
+                .entry(pos.column)
                 .or_insert(Vec::new())
                 .push(pos);
         }
     }
     let mut augment: usize = 0;
     let mut all_positions: Vec<Position> = Vec::new();
-    for i in 0..max_col+1 {
+    for i in 0..max_col + 1 {
         if universe_by_col.contains_key(&i) {
             for pos in universe_by_col.get(&i).unwrap() {
                 all_positions.push(pos.augment_column(augment));
@@ -134,18 +126,12 @@ fn expand_universe_rows(universe: Universe) -> Universe {
             augment += 1;
             new_universe.push(Vec::new());
         } else {
-            new_universe.push(
-                row.iter()
-                .map(|pos| pos.augment_row(augment))
-                .collect()
-            );
+            new_universe.push(row.iter().map(|pos| pos.augment_row(augment)).collect());
         }
     }
 
     new_universe
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -201,4 +187,3 @@ mod tests {
         assert_eq!(a.distance(&b), b.distance(&a));
     }
 }
-

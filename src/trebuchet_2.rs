@@ -1,3 +1,5 @@
+
+
 pub fn parse_lines(lines: Vec<String>) {
     let mut sum = 0 as usize;
     for line in lines.into_iter() {
