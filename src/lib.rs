@@ -1,6 +1,8 @@
 #![allow(unused)]
 use anyhow::Result;
 
+use crate::prelude::*;
+
 mod col_utils;
 mod day_10_1;
 mod day_11_1;
@@ -24,12 +26,15 @@ mod day_8_1;
 mod day_8_2;
 mod day_9_1;
 mod day_9_2;
-mod prelude;
+pub mod prelude;
 mod re_utils;
 mod trebuchet;
 mod trebuchet_2;
 mod utils;
 
-pub fn process_lines(lines: Vec<String>) -> Result<usize> {
-    day_13_1::process_lines(lines)
+pub fn process_lines(lines: Vec<String>, day: DayProblem) -> Result<usize> {
+    match day {
+        DayProblem::Day13(d) => day_13_1::process(lines, d),
+        _ => panic!("Not implemented {:?}", day)
+    }
 }
