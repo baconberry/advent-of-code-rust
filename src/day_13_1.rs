@@ -16,7 +16,7 @@ enum Direction {
     Right,
 }
 
-#[derive(PartialEq,Debug,Copy,Clone)]
+#[derive(Eq,Hash,PartialEq,Debug,Copy,Clone)]
 enum ReflectionLine {
     Horizontal(usize),
     Vertical(usize)
@@ -41,8 +41,24 @@ impl ReflectionLine {
         }
     }
 
+    fn position(&self) -> usize {
+        match self {
+            Self::Vertical(n) => *n,
+            Self::Horizontal(n) => *n
+        }
+    }
+
+
+
     fn is_zero(&self) -> bool {
         self.value() == 0
+    }
+
+    fn is_horizontal(&self) -> bool {
+        match self {
+            Self::Vertical(_) => false,
+            Self::Horizontal(_) => true
+        }
     }
 }
 
@@ -80,7 +96,7 @@ pub fn process(lines: Vec<String>, day_part: DayPart) -> Result<usize> {
 fn process_part(lines: &[String], day_part: &DayPart) -> usize {
     match day_part {
         DayPart::One => {
-            let result = process_all(lines);
+            let result = process_all(lines, None);
             result.0.value() + result.1.value()
         },
         DayPart::Two => process_permutations(lines)
@@ -91,38 +107,44 @@ fn process_permutations(block: &[String]) -> usize {
     let mut max = 0;
     let mut sum = 0;
     let col_size = block.first().map_or(0, |l| l.len());
-    let original_result = process_all(block);
+    let original_result = process_all(block, None);
     let original_reflection = get_real_reflection(&original_result);
+    let mut valid_collection: HashSet<ReflectionLine> = HashSet::new();
     for row in 0..block.len() {
         for col in 0..col_size {
             let mutated_line = mutate_col(&block[row], col);
             let new_block = agg_block(block, &mutated_line, row);
-            let mutated_results = process_all(&new_block);
-            if original_reflection != mutated_results.0  {
-                let mutated_result = mutated_results.0;
-                sum += mutated_result.value();
-                if mutated_result.value() > max {
-                    //println!("Found {:?} for row {} and col {}", 
-                     //   mutated_result, row, col);
-                    max = mutated_result.value();
-                }
-            }
-            if original_reflection != mutated_results.1  {
-                let mutated_result = mutated_results.1;
-                sum += mutated_result.value();
-                if mutated_result.value() > max {
-                    println!("Found {:?} for row {} and col {}", 
-                        mutated_result, row, col);
-                    max = mutated_result.value();
-                }
-            }
+            let mutated_results = 
+            process_all(&new_block, Some(&original_reflection));
+            valid_collection.insert(mutated_results.0);
+            valid_collection.insert(mutated_results.1);
         }
     }
-    sum
+    println!("valid_collection {:?}", valid_collection);
+    let valid_collection: Vec<ReflectionLine> = valid_collection.iter()
+        .filter(|rl| rl.value() > 0)
+        .filter(|rl| *rl != &original_reflection)
+        .map(|rl| rl.to_owned())
+        .collect();
+    let horizontal = valid_collection.iter()
+        .filter(|rl| rl.is_horizontal())
+        .map(|rl| rl.value())
+        .max();
+    if let Some(h) = horizontal {
+        return h;
+    }
+
+    valid_collection.iter()
+        .map(|rl| rl.value())
+        .max()
+        .unwrap_or(0)
 }
 
 fn get_real_reflection(reflections: &(ReflectionLine, ReflectionLine)) 
 -> ReflectionLine {
+    if reflections.0.value() > 0 && reflections.1.value() > 0 {
+        println!("Reflection lines valid {:?}", reflections);
+    }
     if reflections.0.value() > 0 {
         reflections.0
     }else {
@@ -160,24 +182,62 @@ fn mutate_col(line: &str, col: usize) -> String {
 }
 
 
-fn process_all(block: &[String]) -> (ReflectionLine, ReflectionLine) { // (Vertical, Horizontal)
-    let vertical = process_vertical(block);
-    let horizontal = process_horizontal(block);
+fn process_all(block: &[String], reflection_to_avoid: Option<&ReflectionLine>) -> (ReflectionLine, ReflectionLine) { // (Vertical, Horizontal)
+    let horizontal = select_horizontal(block, reflection_to_avoid);
+    let vertical = select_vertical(block, reflection_to_avoid);
+
     (vertical, horizontal)
 }
 
-fn process_horizontal(block: &[String]) -> ReflectionLine {
+fn select_horizontal(block: &[String], 
+    reflection_avoid: Option<&ReflectionLine>) -> ReflectionLine {
     let block_rotated = rotate(block);
-    let result = process_vertical(&block_rotated);
+    let reflection_avoid = reflection_avoid
+        .filter(|rl| rl.is_horizontal());
+
+    let result = select_vertical(&block_rotated, reflection_avoid);
     match result {
         ReflectionLine::Vertical(n) => result.to_horizontal(),
         ReflectionLine::Horizontal(_) => panic!("Invalid state")
     }
 }
 
-fn process_vertical(block: &[String]) -> ReflectionLine {
+fn select_vertical(block: &[String], 
+    reflection_avoid: Option<&ReflectionLine>) -> ReflectionLine {
+    let result = process_vertical(block);
+
+    if result.len() > 1 {
+        println!("Intersection result {:?}", result);
+    }
+
+    let reflection_to_avoid = reflection_avoid
+        .filter(|rl| !rl.is_horizontal())
+        .map(|rl| rl.position())
+        .unwrap_or(0);
+
+
+    let max = result
+        .iter()
+        .filter(|p| {
+            let r = pair_to_reflection_line(p);
+            r != reflection_to_avoid
+        })
+        .max_by(|a, b| {
+            if a.1 == b.1 {
+                return a.0.cmp(&b.0);
+            }
+            a.1.cmp(&b.1)
+        });
+
+    match max {
+        Some(p) => ReflectionLine::Vertical(pair_to_reflection_line(p)),
+        _ => ZERO_VERTICAL_REFLECTION
+    }
+}
+
+fn process_vertical(block: &[String]) -> HashSet<Pair> {
     if block.is_empty() {
-        return ZERO_VERTICAL_REFLECTION;
+        return HashSet::new();
     }
 
     //println!("Current block [{:?}]", block);
@@ -192,23 +252,8 @@ fn process_vertical(block: &[String]) -> ReflectionLine {
             .map(|p| p.clone())
             .collect();
     }
-    if result.len() > 1 {
-        println!("Intersection result {:?}", result);
-    }
 
-    let max = result
-        .iter()
-        .max_by(|a, b| {
-            if a.1 == b.1 {
-                return a.0.cmp(&b.0);
-            }
-            a.1.cmp(&b.1)
-        });
-
-    match max {
-        Some(p) => ReflectionLine::Vertical(p.0 + (p.1 / 2)),
-        _ => ZERO_VERTICAL_REFLECTION
-    }
+    result
 }
 
 fn rotate(block: &[String]) -> Vec<String> {
@@ -225,6 +270,11 @@ fn rotate(block: &[String]) -> Vec<String> {
     }
     all_iters
 }
+
+fn pair_to_reflection_line(p: &Pair) -> usize {
+    (p.0 + (p.1 / 2))
+}
+
 
 fn get_palindromes(line: &str, offset: usize, direction: Direction) -> HashSet<Pair> {
     let mut set: HashSet<Pair> = HashSet::new();
@@ -297,6 +347,18 @@ mod tests {
 ..........#.#..
 #########.#....";
         test_line(input, 4);
+
+        let input = "######...#.
+##########.
+########..#
+##..####...
+.#..#.#...#
+..##......#
+##..###....
+......#.###
+##..##...##
+";
+        test_line(input, 3);
     }
 
     fn test_line(line: &str, expect: usize) {
@@ -329,5 +391,26 @@ mod tests {
 ..##..###
 #....#..#";
         test_line_part_two(input, 400);
+        let input = "######...#.
+##########.
+########..#
+##..####...
+.#..#.#...#
+..##......#
+##..###....
+......#.###
+##..##...##
+";
+        test_line_part_two(input, 1);
+    }
+
+    #[test]
+    fn test_reflection_line_equality() {
+        let one_vertical = ReflectionLine::Vertical(1);
+        let one_horizontal = ReflectionLine::Horizontal(1);
+        assert_ne!(one_vertical, one_horizontal);
+        assert_eq!(one_horizontal, one_vertical.to_horizontal());
+        assert_eq!(one_horizontal, ReflectionLine::Horizontal(1));
+
     }
 }
