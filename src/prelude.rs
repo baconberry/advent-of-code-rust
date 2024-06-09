@@ -1,10 +1,11 @@
-
 #[derive(Debug)]
 pub enum DayPart {
-    One, Two
+    One,
+    Two,
 }
 
 #[derive(Debug)]
 pub enum DayProblem {
-    Day13(DayPart)
+    Day13(DayPart),
+    Day14(DayPart),
 }

@@ -16,3 +16,18 @@ pub fn string_to_lines(input: String) -> Vec<String> {
     }
     result
 }
+
+pub fn rotate_block(block: &[String]) -> Vec<String> {
+    if block.is_empty() {
+        return vec![];
+    }
+    let size = block[0].len();
+    let mut all_iters = vec![String::new(); size];
+
+    for i in 0..size {
+        for s in block {
+            all_iters[i].push(s.chars().nth(i).unwrap());
+        }
+    }
+    all_iters
+}

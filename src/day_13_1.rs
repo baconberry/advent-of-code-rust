@@ -1,13 +1,15 @@
 use core::panic;
 use std::collections::HashSet;
 
-use crate::prelude::*;
 use crate::col_utils;
+use crate::prelude::*;
 use crate::re_utils;
+use crate::utils;
+use crate::utils::rotate_block;
 use anyhow::Result;
 
 type Pair = (usize, usize);
-const ZERO_PAIR: Pair = (0,0);
+const ZERO_PAIR: Pair = (0, 0);
 
 #[derive(Debug)]
 enum Direction {
@@ -16,39 +18,36 @@ enum Direction {
     Right,
 }
 
-#[derive(Eq,Hash,PartialEq,Debug,Copy,Clone)]
+#[derive(Eq, Hash, PartialEq, Debug, Copy, Clone)]
 enum ReflectionLine {
     Horizontal(usize),
-    Vertical(usize)
+    Vertical(usize),
 }
 
 const ZERO_VERTICAL_REFLECTION: ReflectionLine = ReflectionLine::Vertical(0);
 const ZERO_HORIZONTAL_REFLECTION: ReflectionLine = ReflectionLine::Horizontal(0);
 
 impl ReflectionLine {
-
     fn to_horizontal(&self) -> Self {
         match self {
             Self::Horizontal(_) => panic!("Horizontal to horizontal invalid map"),
-            Self::Vertical(n) => Self::Horizontal(*n)
+            Self::Vertical(n) => Self::Horizontal(*n),
         }
     }
 
     fn value(&self) -> usize {
         match self {
             Self::Vertical(n) => *n,
-            Self::Horizontal(n) => *n * 100
+            Self::Horizontal(n) => *n * 100,
         }
     }
 
     fn position(&self) -> usize {
         match self {
             Self::Vertical(n) => *n,
-            Self::Horizontal(n) => *n
+            Self::Horizontal(n) => *n,
         }
     }
-
-
 
     fn is_zero(&self) -> bool {
         self.value() == 0
@@ -57,11 +56,10 @@ impl ReflectionLine {
     fn is_horizontal(&self) -> bool {
         match self {
             Self::Vertical(_) => false,
-            Self::Horizontal(_) => true
+            Self::Horizontal(_) => true,
         }
     }
 }
-
 
 impl Direction {
     fn is_left(&self) -> bool {
@@ -98,8 +96,8 @@ fn process_part(lines: &[String], day_part: &DayPart) -> usize {
         DayPart::One => {
             let result = process_all(lines, None);
             result.0.value() + result.1.value()
-        },
-        DayPart::Two => process_permutations(lines)
+        }
+        DayPart::Two => process_permutations(lines),
     }
 }
 
@@ -114,19 +112,20 @@ fn process_permutations(block: &[String]) -> usize {
         for col in 0..col_size {
             let mutated_line = mutate_col(&block[row], col);
             let new_block = agg_block(block, &mutated_line, row);
-            let mutated_results = 
-            process_all(&new_block, Some(&original_reflection));
+            let mutated_results = process_all(&new_block, Some(&original_reflection));
             valid_collection.insert(mutated_results.0);
             valid_collection.insert(mutated_results.1);
         }
     }
     println!("valid_collection {:?}", valid_collection);
-    let valid_collection: Vec<ReflectionLine> = valid_collection.iter()
+    let valid_collection: Vec<ReflectionLine> = valid_collection
+        .iter()
         .filter(|rl| rl.value() > 0)
         .filter(|rl| *rl != &original_reflection)
         .map(|rl| rl.to_owned())
         .collect();
-    let horizontal = valid_collection.iter()
+    let horizontal = valid_collection
+        .iter()
         .filter(|rl| rl.is_horizontal())
         .map(|rl| rl.value())
         .max();
@@ -134,31 +133,30 @@ fn process_permutations(block: &[String]) -> usize {
         return h;
     }
 
-    valid_collection.iter()
+    valid_collection
+        .iter()
         .map(|rl| rl.value())
         .max()
         .unwrap_or(0)
 }
 
-fn get_real_reflection(reflections: &(ReflectionLine, ReflectionLine)) 
--> ReflectionLine {
+fn get_real_reflection(reflections: &(ReflectionLine, ReflectionLine)) -> ReflectionLine {
     if reflections.0.value() > 0 && reflections.1.value() > 0 {
         println!("Reflection lines valid {:?}", reflections);
     }
     if reflections.0.value() > 0 {
         reflections.0
-    }else {
+    } else {
         reflections.1
     }
 }
-
 
 fn agg_block(block: &[String], new_line: &str, row: usize) -> Vec<String> {
     let mut result: Vec<String> = Vec::with_capacity(block.len());
     for (i, line) in block.iter().enumerate() {
         if i == row {
             result.push(new_line.to_string());
-        }else {
+        } else {
             result.push(line.to_string());
         }
     }
@@ -172,38 +170,41 @@ fn mutate_col(line: &str, col: usize) -> String {
             match c {
                 '.' => result.push('#'),
                 '#' => result.push('.'),
-                _ => panic!("Illegal state")
+                _ => panic!("Illegal state"),
             }
-        }else{
+        } else {
             result.push(c);
         }
     }
     result
 }
 
-
-fn process_all(block: &[String], reflection_to_avoid: Option<&ReflectionLine>) -> (ReflectionLine, ReflectionLine) { // (Vertical, Horizontal)
+fn process_all(
+    block: &[String],
+    reflection_to_avoid: Option<&ReflectionLine>,
+) -> (ReflectionLine, ReflectionLine) {
+    // (Vertical, Horizontal)
     let horizontal = select_horizontal(block, reflection_to_avoid);
     let vertical = select_vertical(block, reflection_to_avoid);
 
     (vertical, horizontal)
 }
 
-fn select_horizontal(block: &[String], 
-    reflection_avoid: Option<&ReflectionLine>) -> ReflectionLine {
-    let block_rotated = rotate(block);
-    let reflection_avoid = reflection_avoid
-        .filter(|rl| rl.is_horizontal());
+fn select_horizontal(
+    block: &[String],
+    reflection_avoid: Option<&ReflectionLine>,
+) -> ReflectionLine {
+    let block_rotated = rotate_block(block);
+    let reflection_avoid = reflection_avoid.filter(|rl| rl.is_horizontal());
 
     let result = select_vertical(&block_rotated, reflection_avoid);
     match result {
         ReflectionLine::Vertical(n) => result.to_horizontal(),
-        ReflectionLine::Horizontal(_) => panic!("Invalid state")
+        ReflectionLine::Horizontal(_) => panic!("Invalid state"),
     }
 }
 
-fn select_vertical(block: &[String], 
-    reflection_avoid: Option<&ReflectionLine>) -> ReflectionLine {
+fn select_vertical(block: &[String], reflection_avoid: Option<&ReflectionLine>) -> ReflectionLine {
     let result = process_vertical(block);
 
     if result.len() > 1 {
@@ -214,7 +215,6 @@ fn select_vertical(block: &[String],
         .filter(|rl| !rl.is_horizontal())
         .map(|rl| rl.position())
         .unwrap_or(0);
-
 
     let max = result
         .iter()
@@ -231,7 +231,7 @@ fn select_vertical(block: &[String],
 
     match max {
         Some(p) => ReflectionLine::Vertical(pair_to_reflection_line(p)),
-        _ => ZERO_VERTICAL_REFLECTION
+        _ => ZERO_VERTICAL_REFLECTION,
     }
 }
 
@@ -256,25 +256,9 @@ fn process_vertical(block: &[String]) -> HashSet<Pair> {
     result
 }
 
-fn rotate(block: &[String]) -> Vec<String> {
-    if block.is_empty() {
-        return vec![];
-    }
-    let size = block[0].len();
-    let mut all_iters = vec![String::new(); size];
-
-    for i in 0..size {
-        for s in block {
-            all_iters[i].push(s.chars().nth(i).unwrap());
-        }
-    }
-    all_iters
-}
-
 fn pair_to_reflection_line(p: &Pair) -> usize {
     (p.0 + (p.1 / 2))
 }
-
 
 fn get_palindromes(line: &str, offset: usize, direction: Direction) -> HashSet<Pair> {
     let mut set: HashSet<Pair> = HashSet::new();
@@ -411,6 +395,5 @@ mod tests {
         assert_ne!(one_vertical, one_horizontal);
         assert_eq!(one_horizontal, one_vertical.to_horizontal());
         assert_eq!(one_horizontal, ReflectionLine::Horizontal(1));
-
     }
 }
