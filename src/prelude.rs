@@ -17,4 +17,5 @@ impl DayPart {
 pub enum DayProblem {
     Day13(DayPart),
     Day14(DayPart),
+    Day15(DayPart),
 }

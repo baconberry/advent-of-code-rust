@@ -1,6 +1,8 @@
 use anyhow::{bail, Result};
 
-pub fn process_lines(lines: Vec<String>) -> Result<usize> {
+use crate::{DayPart, DayProblem};
+
+pub fn process(lines: Vec<String>, day: DayPart) -> Result<usize> {
     todo!()
 }
 
@@ -13,7 +15,7 @@ mod tests {
     fn test_simple_input() {
         let input = "";
         let lines = utils::string_to_lines(input.to_string());
-        let result = process_lines(lines);
+        let result = process(lines, DayPart::One);
         assert_eq!(123, result.unwrap());
     }
 }
