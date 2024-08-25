@@ -6,9 +6,9 @@ pub enum DayPart {
 
 impl DayPart {
     pub fn is_one(&self) -> bool {
-        match(self) {
+        match (self) {
             Self::One => true,
-            _ => false
+            _ => false,
         }
     }
 }

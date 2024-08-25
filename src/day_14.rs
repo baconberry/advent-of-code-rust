@@ -63,7 +63,7 @@ impl Cell {
             _ => false,
         }
     }
-    
+
     fn is_cube(&self) -> bool {
         match (self.cell_type) {
             CellType::Cube => true,
@@ -82,11 +82,10 @@ impl Cell {
         match (self.cell_type) {
             CellType::Cube => '#',
             CellType::Empty => '.',
-            CellType::Round => 'O'
+            CellType::Round => 'O',
         }
     }
 }
-
 
 pub fn process(lines: Vec<String>, day_part: DayPart) -> Result<usize> {
     let mut sum: usize = 0;
@@ -142,7 +141,7 @@ fn process_block(lines: &[String], day_part: &DayPart) -> usize {
     let mut cell_map: HashMap<Loc, Cell> = parse_map(lines);
     let max_loc = (lines.len(), lines[0].len());
     let mut memo: MemoMap = HashMap::new();
-    
+
     if day_part.is_one() {
         push_rocks(&cell_map, Direction::North, max_loc);
         //let map_as_text = map_to_str(&cell_map, max_loc);
@@ -151,27 +150,30 @@ fn process_block(lines: &[String], day_part: &DayPart) -> usize {
 
     let mut i: usize = 0;
     let mut is_cycle_found: bool = false;
-    loop { 
+    loop {
         if i >= TOTAL_CYCLES {
             break;
         }
         let memo_key = map_to_line(&cell_map, max_loc);
         if !is_cycle_found && memo.contains_key(&memo_key) {
             let cycle_start = memo.get(&memo_key).unwrap();
-            println!("Found cycle at iteration [{}], cycle start [{}]", i, cycle_start);
+            println!(
+                "Found cycle at iteration [{}], cycle start [{}]",
+                i, cycle_start
+            );
             let mod_cycle = TOTAL_CYCLES % cycle_start;
             let new_i = TOTAL_CYCLES - mod_cycle;
             i = new_i;
             is_cycle_found = true;
         }
         let cycled_map = Some(&cell_map)
-            .map(|cm|push_rocks(&cm, Direction::North, max_loc))
-            .map(|cm|push_rocks(&cm, Direction::West, max_loc))
-            .map(|cm|push_rocks(&cm, Direction::South, max_loc))
-            .map(|cm|push_rocks(&cm, Direction::East, max_loc))
+            .map(|cm| push_rocks(&cm, Direction::North, max_loc))
+            .map(|cm| push_rocks(&cm, Direction::West, max_loc))
+            .map(|cm| push_rocks(&cm, Direction::South, max_loc))
+            .map(|cm| push_rocks(&cm, Direction::East, max_loc))
             .unwrap();
         let memo_key = map_to_line(&cycled_map, max_loc);
-        memo.insert(memo_key, i-1);
+        memo.insert(memo_key, i - 1);
         i += 1;
 
         cell_map = cycled_map;
@@ -180,22 +182,20 @@ fn process_block(lines: &[String], day_part: &DayPart) -> usize {
     calculate_north_load(&cell_map, max_loc)
 }
 
-fn push_rocks(cell_map_source: &CellMap,
-    direction: Direction,
-    max_loc: (usize, usize)) -> CellMap {
+fn push_rocks(cell_map_source: &CellMap, direction: Direction, max_loc: (usize, usize)) -> CellMap {
     let mut cell_map = cell_map_source.clone();
     let delta = direction.delta();
     let max_x = max_loc.0 as i64;
     let max_y = max_loc.1 as i64;
     for x in 0..max_loc.0 {
         let real_x = if direction.is_start_backwards() {
-            max_loc.0 - x -1
+            max_loc.0 - x - 1
         } else {
             x
         };
         for y in 0..max_loc.1 {
             let real_y = if direction.is_start_backwards() {
-                max_loc.1 - y -1
+                max_loc.1 - y - 1
             } else {
                 y
             };

@@ -7,6 +7,6 @@ use utils::read_lines;
 
 fn main() {
     let lines = read_lines("input.txt".to_string());
-    let result = process_lines(lines, DayProblem::Day15(DayPart::One));
+    let result = process_lines(lines, DayProblem::Day15(DayPart::Two));
     println!("Result [{:?}]", result);
 }
