@@ -15,7 +15,7 @@ enum SpaceType {
     HorizontalSplitter,
 }
 
-#[derive(Debug, Eq, Hash, PartialEq)]
+#[derive(Debug, Eq, Hash, PartialEq, Clone)]
 enum Direction {
     Up,
     Down,
@@ -102,8 +102,8 @@ impl Space {
 
 pub fn process(lines: Vec<String>, part: DayPart) -> Result<usize> {
     match part {
-        DayPart::One => Ok(process_one(&lines)),
-        DayPart::Two => todo!(),
+        DayPart::One => Ok(process_one(&lines, 0, &Direction::Right)),
+        DayPart::Two => Ok(process_corners(&lines)),
     }
 }
 
@@ -180,11 +180,7 @@ fn get_position(row: usize, col: usize, width: usize) -> usize {
     let pos = (row * width) + col;
     return pos;
 }
-
-fn process_one(lines: &[String]) -> usize {
-    if lines.is_empty() {
-        return 0;
-    }
+fn parse_map(lines: &[String]) -> SpaceMap {
     let map_height = lines.len();
     let map_width = lines[0].len();
     let mut space_map = SpaceMap::new(map_height, map_width);
@@ -194,11 +190,52 @@ fn process_one(lines: &[String]) -> usize {
         }
     }
     space_map.populate_neighbors();
-    //println!("Populated map [{:?}]", space_map);
-    beam_walker(&mut space_map)
+    space_map
 }
 
-fn beam_walker(space_map: &mut SpaceMap) -> usize {
+fn process_corners(lines: &[String]) -> usize {
+    if lines.is_empty() {
+        return 0;
+    }
+    let space_map = parse_map(lines);
+
+    let mut corners: Vec<(SpaceId, Direction)> = vec![];
+    let width = space_map.width;
+    let height = space_map.height;
+    for i in 0..space_map.max_position {
+        // top row, down
+        if i < width {
+            corners.push((i, Direction::Down));
+        }
+        // bottom row, up
+        if i > (height - 1) * width {
+            corners.push((i, Direction::Up));
+        }
+        // left col, right
+        if i % width == 0 {
+            corners.push((i, Direction::Right));
+        }
+        // right col, left
+        if i % width == width - 1 {
+            corners.push((i, Direction::Left));
+        }
+    }
+    corners
+        .iter()
+        .map(|(pos, dir)| beam_walker(&space_map, *pos, dir))
+        .max()
+        .unwrap_or(0)
+}
+fn process_one(lines: &[String], start_pos: SpaceId, start_direction: &Direction) -> usize {
+    if lines.is_empty() {
+        return 0;
+    }
+    let space_map = parse_map(lines);
+    //println!("Populated map [{:?}]", space_map);
+    beam_walker(&space_map, start_pos, start_direction)
+}
+
+fn beam_walker(space_map: &SpaceMap, start_pos: usize, start_direction: &Direction) -> usize {
     let capacity = space_map.max_position;
     let mut energized: HashSet<SpaceId> = HashSet::with_capacity(capacity);
     let mut up_beam: HashSet<SpaceId> = HashSet::with_capacity(capacity);
@@ -211,7 +248,7 @@ fn beam_walker(space_map: &mut SpaceMap) -> usize {
     beam_map.insert(Direction::Left, left_beam);
     beam_map.insert(Direction::Right, right_beam);
     let mut queue: VecDeque<(SpaceId, Direction)> = VecDeque::new();
-    queue.push_front((0, Direction::Right));
+    queue.push_front((start_pos, start_direction.clone()));
     while !queue.is_empty() {
         let (id, direction) = queue.pop_front().unwrap();
         energized.insert(id);
@@ -348,5 +385,22 @@ mod tests {
         let lines = utils::string_to_lines(input.to_string());
         let result = process(lines, DayPart::One);
         assert_eq!(46, result.unwrap());
+    }
+
+    #[test]
+    fn test_simple_input_two() {
+        let input = r".|...\....
+|.-.\.....
+.....|-...
+........|.
+..........
+.........\
+..../.\\..
+.-.-/..|..
+.|....-|.\
+..//.|....";
+        let lines = utils::string_to_lines(input.to_string());
+        let result = process(lines, DayPart::Two);
+        assert_eq!(51, result.unwrap());
     }
 }
