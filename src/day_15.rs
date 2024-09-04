@@ -1,5 +1,5 @@
 use core::panic;
-use std:: collections::{HashMap, LinkedList, VecDeque};
+use std::collections::{HashMap, LinkedList, VecDeque};
 
 use anyhow::{bail, Result};
 use regex::Regex;
