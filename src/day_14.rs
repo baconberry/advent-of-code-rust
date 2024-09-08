@@ -87,18 +87,18 @@ impl Cell {
     }
 }
 
-pub fn process(lines: Vec<String>, day_part: DayPart) -> Result<usize> {
+pub fn process(lines: Vec<String>, day_part: usize) -> Result<usize> {
     let mut sum: usize = 0;
     let mut line_aggregator: Vec<String> = Vec::new();
     for line in lines {
         if line.is_empty() {
-            sum += process_block(&line_aggregator.as_slice(), &day_part);
+            sum += process_block(&line_aggregator.as_slice(), day_part);
             line_aggregator.clear();
         } else {
             line_aggregator.push(line);
         }
     }
-    sum += process_block(&line_aggregator.as_slice(), &day_part);
+    sum += process_block(&line_aggregator.as_slice(), day_part);
     Ok(sum)
 }
 
@@ -134,7 +134,7 @@ fn map_to_line(cell_map: &CellMap, max_loc: (usize, usize)) -> String {
 
 type MemoKey = (Direction, String);
 type MemoMap = HashMap<String, usize>;
-fn process_block(lines: &[String], day_part: &DayPart) -> usize {
+fn process_block(lines: &[String], day_part: usize) -> usize {
     if lines.is_empty() {
         return 0;
     }
@@ -142,7 +142,7 @@ fn process_block(lines: &[String], day_part: &DayPart) -> usize {
     let max_loc = (lines.len(), lines[0].len());
     let mut memo: MemoMap = HashMap::new();
 
-    if day_part.is_one() {
+    if day_part == 1 {
         push_rocks(&cell_map, Direction::North, max_loc);
         //let map_as_text = map_to_str(&cell_map, max_loc);
         return calculate_north_load(&cell_map, max_loc);
@@ -297,13 +297,13 @@ O.#..O.#.#
 
     fn test_line(line: &str, expect: usize) {
         let lines = utils::string_to_lines(line.to_string());
-        let result = process(lines, DayPart::One);
+        let result = process(lines, 1);
         assert_eq!(expect, result.unwrap());
     }
 
     fn test_line_2(line: &str, expect: usize) {
         let lines = utils::string_to_lines(line.to_string());
-        let result = process(lines, DayPart::Two);
+        let result = process(lines, 2);
         assert_eq!(expect, result.unwrap());
     }
 

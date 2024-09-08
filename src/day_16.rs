@@ -4,8 +4,6 @@ use anyhow::{bail, Result};
 use num::Integer;
 use rayon::{slice::Windows, spawn};
 
-use crate::{DayPart, DayProblem};
-
 #[derive(Debug)]
 enum SpaceType {
     Empty,
@@ -100,10 +98,11 @@ impl Space {
     }
 }
 
-pub fn process(lines: Vec<String>, part: DayPart) -> Result<usize> {
+pub fn process(lines: Vec<String>, part: usize) -> Result<usize> {
     match part {
-        DayPart::One => Ok(process_one(&lines, 0, &Direction::Right)),
-        DayPart::Two => Ok(process_corners(&lines)),
+        1 => Ok(process_one(&lines, 0, &Direction::Right)),
+        2 => Ok(process_corners(&lines)),
+        _ => panic!("Day part not implemented"),
     }
 }
 
@@ -383,7 +382,7 @@ mod tests {
 .|....-|.\
 ..//.|....";
         let lines = utils::string_to_lines(input.to_string());
-        let result = process(lines, DayPart::One);
+        let result = process(lines, 1);
         assert_eq!(46, result.unwrap());
     }
 
@@ -400,7 +399,7 @@ mod tests {
 .|....-|.\
 ..//.|....";
         let lines = utils::string_to_lines(input.to_string());
-        let result = process(lines, DayPart::Two);
+        let result = process(lines, 2);
         assert_eq!(51, result.unwrap());
     }
 }

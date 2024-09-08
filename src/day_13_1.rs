@@ -76,28 +76,29 @@ impl Direction {
     }
 }
 
-pub fn process(lines: Vec<String>, day_part: DayPart) -> Result<usize> {
+pub fn process(lines: Vec<String>, day_part: usize) -> Result<usize> {
     let mut sum: usize = 0;
     let mut line_aggregator: Vec<String> = Vec::new();
     for line in lines {
         if line.is_empty() {
-            sum += process_part(&line_aggregator.as_slice(), &day_part);
+            sum += process_part(&line_aggregator.as_slice(), day_part);
             line_aggregator.clear();
         } else {
             line_aggregator.push(line);
         }
     }
-    sum += process_part(&line_aggregator.as_slice(), &day_part);
+    sum += process_part(&line_aggregator.as_slice(), day_part);
     Ok(sum)
 }
 
-fn process_part(lines: &[String], day_part: &DayPart) -> usize {
+fn process_part(lines: &[String], day_part: usize) -> usize {
     match day_part {
-        DayPart::One => {
+        1 => {
             let result = process_all(lines, None);
             result.0.value() + result.1.value()
         }
-        DayPart::Two => process_permutations(lines),
+        2 => process_permutations(lines),
+        _ => panic!("Day part not supported"),
     }
 }
 
@@ -347,13 +348,13 @@ mod tests {
 
     fn test_line(line: &str, expect: usize) {
         let lines = utils::string_to_lines(line.to_string());
-        let result = process(lines, DayPart::One);
+        let result = process(lines, 1);
         assert_eq!(expect, result.unwrap());
     }
 
     fn test_line_part_two(line: &str, expect: usize) {
         let lines = utils::string_to_lines(line.to_string());
-        let result = process(lines, DayPart::Two);
+        let result = process(lines, 2);
         assert_eq!(expect, result.unwrap());
     }
 

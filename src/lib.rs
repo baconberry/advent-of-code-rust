@@ -35,12 +35,12 @@ mod trebuchet;
 mod trebuchet_2;
 mod utils;
 
-pub fn process_lines(lines: Vec<String>, day: DayProblem) -> Result<usize> {
+pub fn process_lines(lines: Vec<String>, day: usize, day_part: usize) -> Result<usize> {
     match day {
-        DayProblem::Day13(d) => day_13_1::process(lines, d),
-        DayProblem::Day14(d) => day_14::process(lines, d),
-        DayProblem::Day15(d) => day_15::process(lines, d),
-        DayProblem::Day16(d) => day_16::process(lines, d),
+        13 => day_13_1::process(lines, day_part),
+        14 => day_14::process(lines, day_part),
+        15 => day_15::process(lines, day_part),
+        16 => day_16::process(lines, day_part),
         _ => panic!("Not implemented {:?}", day),
     }
 }

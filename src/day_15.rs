@@ -4,12 +4,11 @@ use std::collections::{HashMap, LinkedList, VecDeque};
 use anyhow::{bail, Result};
 use regex::Regex;
 
-use crate::{DayPart, DayProblem};
-
-pub fn process(lines: Vec<String>, day: DayPart) -> Result<usize> {
-    match day {
-        DayPart::One => Ok(process_d1(&lines)),
-        DayPart::Two => Ok(process_d2(&lines)),
+pub fn process(lines: Vec<String>, day_part: usize) -> Result<usize> {
+    match day_part {
+        1 => Ok(process_d1(&lines)),
+        2 => Ok(process_d2(&lines)),
+        _ => panic!("Day part not implemented"),
     }
 }
 
@@ -180,7 +179,7 @@ mod tests {
     fn test_simple_input() {
         let input = "rn=1,cm-,qp=3,cm=2,qp-,pc=4,ot=9,ab=5,pc-,pc=6,ot=7";
         let lines = utils::string_to_lines(input.to_string());
-        let result = process(lines, DayPart::One);
+        let result = process(lines, 1);
         assert_eq!(1320, result.unwrap());
     }
 
@@ -188,7 +187,7 @@ mod tests {
     fn test_simple_input_day_2() {
         let input = "rn=1,cm-,qp=3,cm=2,qp-,pc=4,ot=9,ab=5,pc-,pc=6,ot=7";
         let lines = utils::string_to_lines(input.to_string());
-        let result = process(lines, DayPart::Two);
+        let result = process(lines, 2);
         assert_eq!(145, result.unwrap());
     }
 }
