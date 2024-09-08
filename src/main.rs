@@ -1,5 +1,4 @@
 #![allow(unused)]
-use std::alloc::System;
 
 use advent_of_code::prelude::*;
 mod utils;
