@@ -6,11 +6,9 @@ use std::usize;
 use anyhow::{bail, Result};
 use num::One;
 
-use crate::{DayPart, DayProblem};
-
-pub fn process(lines: Vec<String>, day_part: DayPart) -> Result<usize> {
+pub fn process(lines: Vec<String>, day_part: usize) -> Result<usize> {
     match day_part {
-        DayPart::One => Ok(process_one(&lines)),
+        1 => Ok(process_one(&lines)),
         _ => todo!(),
     }
 }
@@ -38,7 +36,7 @@ fn process_one(lines: &[String]) -> usize {
     0
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Hash)]
 enum Direction {
     Up,
     Down,
@@ -69,17 +67,16 @@ impl Direction {
 
 #[derive(Eq, PartialEq, Debug)]
 struct MapPath {
-    path: HeatPath,
+    //path: HeatPath,
+    position: usize,
     heat_loss: usize,
     same_direction_len: u8,
     direction: Direction,
 }
 impl Ord for MapPath {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        other
-            .heat_loss
-            .cmp(&self.heat_loss)
-            .then_with(|| other.path.len().cmp(&self.path.len()))
+        other.heat_loss.cmp(&self.heat_loss)
+        //.then_with(|| other.path.len().cmp(&self.path.len()))
     }
 }
 impl PartialOrd for MapPath {
@@ -89,9 +86,14 @@ impl PartialOrd for MapPath {
 }
 
 impl MapPath {
-    fn new(path: HeatPath, same_direction_len: u8, direction: Direction, heat_loss: usize) -> Self {
+    fn new(
+        position: usize,
+        same_direction_len: u8,
+        direction: Direction,
+        heat_loss: usize,
+    ) -> Self {
         Self {
-            path,
+            position,
             heat_loss,
             same_direction_len,
             direction,
@@ -99,8 +101,6 @@ impl MapPath {
     }
 
     fn move_one(&self, new_pos: usize, new_dir: &Direction, pos_heat_loss: u8) -> Self {
-        let mut new_path = self.path.clone();
-        new_path.push(new_pos);
         let direction_len = if self.direction == *new_dir {
             self.same_direction_len + 1
         } else {
@@ -108,7 +108,7 @@ impl MapPath {
         };
 
         Self::new(
-            new_path,
+            new_pos,
             direction_len,
             new_dir.clone(),
             self.heat_loss + pos_heat_loss as usize,
@@ -124,30 +124,24 @@ fn find_shortest_path(
 ) -> Option<MapPath> {
     let mut path_queue: BinaryHeap<MapPath> = BinaryHeap::new();
     let mut dist: Vec<usize> = (0..map.len()).map(|_| usize::MAX - 28).collect();
+    let mut visited = HashSet::new();
     let mut path_queue: BinaryHeap<MapPath> = BinaryHeap::new();
     let all_dirs = Direction::all();
-    //dist[start_pos] = map[start_pos] as usize;
     dist[start_pos] = 0;
     for dir in &all_dirs {
         if is_dir_possbile(start_pos, width, height, &dir) {
-            let starting = MapPath::new(vec![start_pos], 1, dir.clone(), 0);
+            let starting = MapPath::new(start_pos, 1, dir.clone(), 0);
             path_queue.push(starting);
         }
     }
 
     let mut result_path: Option<MapPath> = None;
     let mut iter_count: usize = 0;
-    while !path_queue.is_empty() {
-        let path = path_queue.pop().unwrap();
-        let last_pos = path.path.last().unwrap();
-        if dist[*last_pos] + 28 < path.heat_loss {
-            continue;
-        }
+    while let Some(path) = path_queue.pop() {
+        let last_pos = path.position;
         if path.same_direction_len > 3 {
             continue;
         }
-        //println!("Trying new path {:?} with heat_loss {}  and dir_length {}",
-        //path.path,  path.heat_loss, path.same_direction_len);
         iter_count += 1;
         if iter_count % 1000 == 0 {
             println!(
@@ -158,7 +152,7 @@ fn find_shortest_path(
             );
         }
 
-        if *last_pos == end_pos {
+        if last_pos == end_pos {
             if let Some(prev) = &result_path {
                 if path.heat_loss < prev.heat_loss {
                     result_path = Some(path)
@@ -173,16 +167,16 @@ fn find_shortest_path(
             if path.direction.is_oposite(dir) {
                 continue;
             }
-            if !is_dir_possbile(*last_pos, width, height, dir) {
+            if !is_dir_possbile(last_pos, width, height, dir) {
                 continue;
             }
-            let new_pos = get_move_pos(*last_pos, width, dir);
-            if !path.path.contains(&new_pos) {
-                let new_path = path.move_one(new_pos, dir, map[new_pos]);
-                if new_path.heat_loss < dist[new_pos] {
-                    dist[new_pos] = new_path.heat_loss;
-                }
-                if new_path.heat_loss < dist[new_pos] + 28 {
+            let new_pos = get_move_pos(last_pos, width, dir);
+            let new_path = path.move_one(new_pos, dir, map[new_pos]);
+            if new_path.heat_loss < dist[new_pos] {
+                dist[new_pos] = new_path.heat_loss;
+            }
+            if new_path.heat_loss < dist[new_pos] + 28 {
+                if visited.insert((new_pos, dir, new_path.same_direction_len)) {
                     path_queue.push(new_path);
                 }
             }
@@ -257,7 +251,18 @@ mod tests {
 2546548887735
 4322674655533";
         let lines = utils::string_to_lines(input.to_string());
-        let result = process(lines, DayPart::One);
+        let result = process(lines, 1);
         assert_eq!(102, result.unwrap());
+    }
+    #[test]
+    fn test_simple_input_99() {
+        let input = "99999
+99999
+99999
+99999
+99999";
+        let lines = utils::string_to_lines(input.to_string());
+        let result = process(lines, 1);
+        assert_eq!(72, result.unwrap());
     }
 }

@@ -42,6 +42,7 @@ pub fn process_lines(lines: Vec<String>, day: usize, day_part: usize) -> Result<
         14 => day_14::process(lines, day_part),
         15 => day_15::process(lines, day_part),
         16 => day_16::process(lines, day_part),
+        17 => day_17::process(lines, day_part),
         _ => panic!("Not implemented {:?}", day),
     }
 }
