@@ -1,14 +1,17 @@
 use std::collections::BinaryHeap;
 use std::collections::HashSet;
 use std::collections::VecDeque;
+use std::ops::RangeInclusive;
 use std::usize;
 
 use anyhow::{bail, Result};
+use num::iter::Range;
 use num::One;
 
-pub fn process(lines: Vec<String>, day_part: usize) -> Result<usize> {
+pub fn process(lines: &[String], day_part: usize) -> Result<usize> {
     match day_part {
-        1 => Ok(process_one(&lines)),
+        1 => Ok(process_with_range(lines, 0..=3)),
+        2 => Ok(process_with_range(lines, 4..=10)),
         _ => todo!(),
     }
 }
@@ -16,7 +19,7 @@ pub fn process(lines: Vec<String>, day_part: usize) -> Result<usize> {
 type HeatMap = Vec<u8>;
 type HeatPath = Vec<usize>;
 
-fn process_one(lines: &[String]) -> usize {
+fn process_with_range(lines: &[String], directional_range: RangeInclusive<u8>) -> usize {
     if lines.is_empty() {
         return 0;
     }
@@ -29,8 +32,8 @@ fn process_one(lines: &[String]) -> usize {
         }
     }
     let end_pos = get_pos(width - 1, height - 1, width);
-    if let Some(map_path) = find_shortest_path(&map, height, width, 0, end_pos) {
-        print!("Result: {:?}", map_path);
+    if let Some(map_path) = find_shortest_path(&map, height, width, 0, end_pos, directional_range) {
+        println!("Result: {:?}", map_path);
         return map_path.heat_loss;
     }
     0
@@ -76,7 +79,6 @@ struct MapPath {
 impl Ord for MapPath {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         other.heat_loss.cmp(&self.heat_loss)
-        //.then_with(|| other.path.len().cmp(&self.path.len()))
     }
 }
 impl PartialOrd for MapPath {
@@ -121,9 +123,11 @@ fn find_shortest_path(
     width: usize,
     start_pos: usize,
     end_pos: usize,
+    move_range: RangeInclusive<u8>,
 ) -> Option<MapPath> {
+    let max_offset = *move_range.end() as usize * 9;
     let mut path_queue: BinaryHeap<MapPath> = BinaryHeap::new();
-    let mut dist: Vec<usize> = (0..map.len()).map(|_| usize::MAX - 28).collect();
+    let mut dist: Vec<usize> = (0..map.len()).map(|_| usize::MAX - max_offset).collect();
     let mut visited = HashSet::new();
     let mut path_queue: BinaryHeap<MapPath> = BinaryHeap::new();
     let all_dirs = Direction::all();
@@ -139,8 +143,12 @@ fn find_shortest_path(
     let mut iter_count: usize = 0;
     while let Some(path) = path_queue.pop() {
         let last_pos = path.position;
-        if path.same_direction_len > 3 {
+        if path.same_direction_len > *move_range.end() {
             continue;
+        }
+        let current_in_range = move_range.contains(&path.same_direction_len);
+        if path.heat_loss < dist[last_pos] {
+            dist[last_pos] = path.heat_loss;
         }
         iter_count += 1;
         if iter_count % 1000 == 0 {
@@ -152,7 +160,7 @@ fn find_shortest_path(
             );
         }
 
-        if last_pos == end_pos {
+        if current_in_range && last_pos == end_pos {
             if let Some(prev) = &result_path {
                 if path.heat_loss < prev.heat_loss {
                     result_path = Some(path)
@@ -172,10 +180,11 @@ fn find_shortest_path(
             }
             let new_pos = get_move_pos(last_pos, width, dir);
             let new_path = path.move_one(new_pos, dir, map[new_pos]);
-            if new_path.heat_loss < dist[new_pos] {
-                dist[new_pos] = new_path.heat_loss;
+            let is_in_range = move_range.contains(&new_path.same_direction_len);
+            if *dir != path.direction && !current_in_range {
+                continue;
             }
-            if new_path.heat_loss < dist[new_pos] + 28 {
+            if new_path.heat_loss < dist[new_pos] + max_offset {
                 if visited.insert((new_pos, dir, new_path.same_direction_len)) {
                     path_queue.push(new_path);
                 }
@@ -251,8 +260,10 @@ mod tests {
 2546548887735
 4322674655533";
         let lines = utils::string_to_lines(input.to_string());
-        let result = process(lines, 1);
+        let result = process(&lines, 1);
         assert_eq!(102, result.unwrap());
+        let result = process(&lines, 2);
+        assert_eq!(94, result.unwrap());
     }
     #[test]
     fn test_simple_input_99() {
@@ -262,7 +273,18 @@ mod tests {
 99999
 99999";
         let lines = utils::string_to_lines(input.to_string());
-        let result = process(lines, 1);
+        let result = process(&lines, 1);
         assert_eq!(72, result.unwrap());
+    }
+    #[test]
+    fn test_simple_input_day2_2() {
+        let input = "111111111111
+999999999991
+999999999991
+999999999991
+999999999991";
+        let lines = utils::string_to_lines(input.to_string());
+        let result = process(&lines, 2);
+        assert_eq!(71, result.unwrap());
     }
 }
