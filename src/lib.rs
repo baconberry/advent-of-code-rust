@@ -14,6 +14,7 @@ mod day_14;
 mod day_15;
 mod day_16;
 mod day_17;
+mod day_18;
 mod day_2_1;
 mod day_2_2;
 mod day_3_1;
@@ -43,6 +44,7 @@ pub fn process_lines(lines: Vec<String>, day: usize, day_part: usize) -> Result<
         15 => day_15::process(lines, day_part),
         16 => day_16::process(lines, day_part),
         17 => day_17::process(&lines, day_part),
+        18 => day_18::process(&lines, day_part),
         _ => panic!("Not implemented {:?}", day),
     }
 }
