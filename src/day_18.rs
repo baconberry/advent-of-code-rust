@@ -1,8 +1,9 @@
 use core::panic;
-use std::usize;
+use std::{collections::HashMap, usize};
 
-use crate::prelude::*;
+use crate::{prelude::*, shoelace::{self, Vertx}};
 use anyhow::{bail, Result};
+use num::Num;
 
 #[derive(Clone, Debug, PartialEq)]
 enum Block {
@@ -28,115 +29,72 @@ impl ToString for Block {
 pub fn process(lines: &[String], day_part: usize) -> Result<usize> {
     match day_part {
         1 => process_one(lines),
+        2 => process_two(lines),
         _ => panic!(),
     }
 }
 
+pub fn process_two(lines: &[String]) -> Result<usize> {
+    let mut instructions: Vec<(Direction, usize)> = Vec::new();
+    for line in lines {
+        let mut split = line.split(" ");
+        let rgb = split.nth(2).unwrap();
+        let rgb = &rgb[2..8];
+        instructions.push(get_line_components_from_rgb(rgb).unwrap());
+    }
+    process_instructions(&instructions)
+}
 pub fn process_one(lines: &[String]) -> Result<usize> {
-    let end_coord = get_bounds(lines);
-    //println!("Starting grid with end coord {:?}", end_coord);
-    let mut grid: Grid<Block> =
-        Grid::init((end_coord.x * 2) + 1, (end_coord.y * 2) + 1, Block::Empty);
-    let mut position = end_coord;
-    grid.set(&position, Block::Wall);
+    let mut instructions: Vec<(Direction, usize)> = Vec::new();
     for line in lines {
-        let (dir, len) = get_line_components(line).unwrap();
-        //println!("Parsed components {:?} {:?} from line {}", dir, len, line);
+        instructions.push(get_line_components(line).unwrap());
+    }
+    process_instructions(&instructions)
+}
+
+pub fn process_instructions(instructions: &[(Direction, usize)]) -> Result<usize> {
+    println!("Processing instructions [{:?}]", instructions);
+    let mut position = Coord::from(0,0);
+    let mut circumference = 0;
+    let mut vertxs: Vec<Vertx> = Vec::with_capacity(instructions.len());
+    for (id, line) in instructions.iter().enumerate() {
+        let (dir, len) = line;
         let delta = dir.coord_delta();
-        for m in 0..len {
-            //println!("Position {:?}, moving delta {:?}", position, delta);
-            position = position.plus_delta(delta).unwrap();
-            grid.set(&position, Block::Wall);
-        }
+        circumference += len;
+        let new_pos = position.plus_delta(delta, *len as isize).unwrap();
+        let edge_to = if id == instructions.len()-1 { 0 } else { id+1};
+        vertxs.push(Vertx::new(id, new_pos.x as isize, new_pos.y as isize, edge_to));
+        position = new_pos;
     }
+    let map = vertxs
+        .iter()
+        .map(|v| (v.id, v.clone()))
+        .collect::<HashMap<usize, Vertx>>();
+    let area = shoelace::calculate_area(&map, 0).unwrap();
+    let res = area + (circumference as f64 / 2.0) + 1.0;
 
-    let edge_reachable = grid.get_edge_reachable_pos_set(&Block::Wall);
-    //println!("Edge reachable [{:?}]", edge_reachable);
-    for ele in edge_reachable {
-        grid.data[ele] = Block::EdgeReachable;
-    }
-    return Ok(grid.count_eq(&Block::Empty) + grid.count_eq(&Block::Wall));
-
-    //grid.print();
-
-    //grid = mark_inner(&grid, &Block::Wall, &Block::Hole);
-    //println!("\nafter 0 rotation + marking");
-    //grid.print();
-    //for i in 1..4{
-    //    grid = grid.rotate();
-    //    grid = mark_inner(&grid, &Block::Wall, &Block::Hole);
-    //    println!("\nafter {i} rotation + marking");
-    //grid.print();
-    //}
-    //Ok(grid.count_ne(&Block::Empty))
+     Ok(res as usize)
 }
 
-// walks from west to east ,north to south,
-// the first orruccence of a C will open a parenthesis like logic
-// and it starts marking M until another occurrence of C happens
-pub fn mark_inner<E: ToString + Clone + PartialEq>(grid: &Grid<E>, c: &E, m: &E) -> Grid<E> {
-    let mut new_grid: Grid<E> = grid.clone();
-    for y in 1..grid.height - 1 {
-        let mut is_open = false;
-        let mut last_open_pos = 0;
-        for x in 0..grid.width {
-            let pos = (grid.width * y) + x;
-            let elem = &new_grid.data[pos];
-            if c == elem {
-                is_open = !is_open;
-                if is_open {
-                    last_open_pos = pos;
-                } else {
-                    // mark from last open to pos -1
-                    if last_open_pos == pos - 1 {
-                        continue;
-                    }
-                    for i in last_open_pos + 1..pos {
-                        new_grid.data[i] = m.clone();
-                    }
-                }
-            }
-        }
-    }
-    new_grid
-}
-
-fn get_bounds(lines: &[String]) -> Coord {
-    let start_pos = usize::MAX / 2;
-    let mut pos = Coord::from(start_pos, start_pos);
-    let mut min_left = start_pos;
-    let mut max_right = start_pos;
-    let mut max_up = start_pos;
-    let mut min_down = start_pos;
-
-    for line in lines {
-        let (dir, len) = get_line_components(line).unwrap();
-        let (d_x, d_y) = dir.coord_delta();
-        let (d_x, d_y) = (d_x * len as i32, d_y * len as i32);
-
-        pos = pos.plus_delta((d_x, d_y)).unwrap();
-        if pos.x < min_left {
-            min_left = pos.x;
-        }
-        if pos.x > max_right {
-            max_right = pos.x;
-        }
-
-        if pos.y < min_down {
-            min_down = pos.y;
-        }
-        if pos.y > max_up {
-            max_up = pos.y;
-        }
-    }
-
-    Coord::from(max_right - min_left, max_up - min_down)
-}
 
 fn get_line_components(line: &str) -> Result<(Direction, usize)> {
     let mut split = line.split(" ");
     let dir = split.next().unwrap().parse::<Direction>().unwrap();
     let len = split.next().unwrap().parse::<usize>().unwrap();
+    Ok((dir, len))
+}
+fn get_line_components_from_rgb(rgb: &str) -> Result<(Direction, usize)> {
+    let len = Num::from_str_radix(&rgb[0..rgb.len() - 1], 16).unwrap();
+    let dir = match &rgb[rgb.len() - 1..] {
+        "0" => "R",
+        "1" => "D",
+        "2" => "L",
+        "3" => "U",
+        _ => bail!("Illegal argument for direction"),
+    }
+    .parse::<Direction>()
+    .unwrap();
+
     Ok((dir, len))
 }
 
@@ -166,11 +124,9 @@ U 2 (#7a21e3)";
         assert_eq!(62, result.unwrap());
     }
     #[test]
-    fn test_bounds() {
+    fn test_simple_two() {
         let lines = utils::string_to_lines(LINES_1.to_string());
-        let result = get_bounds(&lines);
-        let e = Coord::from(7, 10);
-        assert_eq!(result.x, 6);
-        assert_eq!(result.y, 9);
+        let result = process(&lines, 2);
+        assert_eq!(952408144115, result.unwrap());
     }
 }

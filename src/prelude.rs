@@ -33,7 +33,7 @@ impl<E> Grid<E> {
         Direction::all_dir()
             .iter()
             .map(|d| d.coord_delta())
-            .map(|delta| pos.plus_delta(delta))
+            .map(|delta| pos.plus_delta(delta, 1))
             .filter(|r| r.is_ok())
             .map(|r| r.unwrap())
             .filter(|c| self.is_within_bounds(c))
@@ -198,7 +198,7 @@ impl FromStr for Direction {
 }
 
 impl Direction {
-    pub fn coord_delta(&self) -> (i32, i32) {
+    pub fn coord_delta(&self) -> (isize, isize) {
         match self {
             Self::North => (0, -1),
             Self::South => (0, 1),
@@ -236,14 +236,14 @@ impl Coord {
         self.x > other.x || self.y > other.y
     }
 
-    pub fn plus_delta(&self, delta: (i32, i32)) -> Result<Coord> {
+    pub fn plus_delta(&self, delta: (isize, isize), scale: isize) -> Result<Coord> {
         if self.x == 0 && delta.0 < 0 || self.y == 0 && delta.1 < 0 {
             bail!("delta overflow")
         }
 
         Ok(Self {
-            x: usize_add(self.x, delta.0),
-            y: usize_add(self.y, delta.1),
+            x: usize_add(self.x, delta.0* scale),
+            y: usize_add(self.y, delta.1* scale),
         })
     }
 
@@ -261,7 +261,7 @@ impl Coord {
     }
 }
 
-fn usize_add(a: usize, b: i32) -> usize {
+fn usize_add(a: usize, b: isize) -> usize {
     if b.is_negative() {
         a - (b.abs() as u8) as usize
     } else {

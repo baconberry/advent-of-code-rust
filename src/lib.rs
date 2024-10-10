@@ -33,6 +33,7 @@ mod day_9_1;
 mod day_9_2;
 pub mod prelude;
 mod re_utils;
+pub mod shoelace;
 mod trebuchet;
 mod trebuchet_2;
 mod utils;
