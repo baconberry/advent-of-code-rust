@@ -8,6 +8,6 @@ use utils::read_lines;
 
 fn main() {
     let lines = read_lines("input.txt".to_string());
-    let result = process_lines(lines, 18, 1);
+    let result = process_lines(lines, 19, 1);
     println!("Result [{:?}]", result);
 }
